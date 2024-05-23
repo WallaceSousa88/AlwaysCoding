@@ -1,28 +1,27 @@
-from collections import OrderedDict
-from .bencoding import Decoder
+import bencode
+import hashlib
 
 class Torrent:
-    def __init__(self, torrent_file):
-        with open(torrent_file, 'rb') as f:
-            self.meta_info = f.read()
-        self.torrent = Decoder(self.meta_info).decode()
+    def __init__(self, arquivo_torrent):
+        with open(arquivo_torrent, 'rb') as f:
+            metadados = bencode.bdecode(f.read())
 
-    @property
-    def announce(self):
-        return self.torrent.get(b'announce').decode()
+        self.anunciar = metadados['announce']
+        self.info = metadados['info']
+        self.nome = self.info['name']
+        self.tamanho_peca = self.info['piece length']
+        self.pecas = self._gerar_pecas()
 
-    @property
-    def announce_list(self):
-        return [url.decode() for sublist in self.torrent.get(b'announce-list', []) for url in sublist]
+    def _gerar_pecas(self):
+        hashes = self.info['pieces']
+        pecas = []
+        i = 0
+        while i < len(hashes):
+            pecas.append(hashes[i:i+20])
+            i += 20
+        return pecas
 
-    @property
-    def comment(self):
-        return self.torrent.get(b'comment').decode()
-
-    @property
-    def creation_date(self):
-        return self.torrent.get(b'creation date')
-
-    @property
-    def info(self):
-        return self.torrent.get(b'info')
+    def verificar_peca(self, indice_peca, peca):
+        hash_esperado = self.pecas[indice_peca]
+        hash_calculado = hashlib.sha1(peca).digest()
+        return hash_esperado == hash_calculado

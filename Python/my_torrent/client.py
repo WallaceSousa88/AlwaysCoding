@@ -1,9 +1,9 @@
-from .bencoding import Decoder
+from torrent import Torrent
+from download import Download
 
-class BitTorrentClient:
-    def __init__(self, torrent_file):
-        with open(torrent_file, 'rb') as f:
-            self.meta_info = f.read()
+if __name__ == '__main__':
+    arquivo_torrent = input("Digite o caminho para o arquivo .torrent: ")
+    torrent = Torrent(arquivo_torrent)
 
-    def start(self):
-        torrent = Decoder(self.meta_info).decode()
+    download = Download(torrent)
+    download.iniciar()
