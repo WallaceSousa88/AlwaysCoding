@@ -1,4 +1,0 @@
-1.  Completar o `peer.py`: Implemente a lógica de handshake, envio/recebimento de mensagens do protocolo BitTorrent.
-2.  Implementar `download.py`: Gerencie as conexões com peers, o download de pedaços, a verificação de integridade e a escrita dos dados em um arquivo.
-3.  Adicionar Tratamento de Erros e Exceções: Torne seu código robusto a erros de conexão, dados corrompidos, etc.
-4.  Considerar Otimizações: Implemente mecanismos de controle de fluxo, seleção de peers, etc.
