@@ -18,6 +18,14 @@ build_property.GenerateRazorMetadataSourceChecksumAttributes =
 build_property.MSBuildProjectDirectory = C:\Users\e610098\Desktop\AlwaysCoding\C#\DevJourney
 build_property._RazorSourceGeneratorDebug = 
 
+[C:/Users/e610098/Desktop/AlwaysCoding/C\#/DevJourney/Views/Home/API.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcSG9tZVxBUEkuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/e610098/Desktop/AlwaysCoding/C\#/DevJourney/Views/Home/API/Auth0.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcSG9tZVxBUElcQXV0aDAuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
 [C:/Users/e610098/Desktop/AlwaysCoding/C\#/DevJourney/Views/Home/Index.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcSG9tZVxJbmRleC5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 

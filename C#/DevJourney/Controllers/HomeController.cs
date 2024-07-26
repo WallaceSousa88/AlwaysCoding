@@ -23,6 +23,16 @@ namespace DevJourney.Controllers
             return View();
         }
 
+        public IActionResult API()
+        {
+            return View();
+        }
+
+        public IActionResult Auth0()
+        {
+            return View();
+        }
+
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
         public IActionResult Error()
         {
