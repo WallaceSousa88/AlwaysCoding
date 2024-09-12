@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using GestaoMedicamentos.Produto.Models;
 
 namespace GestaoMedicamentos.Produto.Data
 {
@@ -9,8 +10,8 @@ namespace GestaoMedicamentos.Produto.Data
         {
         }
 
-        public DbSet<Produto> Produtos { get; set; }
-        public DbSet<Lote> Lotes { get; set; }
-        public DbSet<Transacao> Transacoes { get; set; }
+        public DbSet<GestaoMedicamentos.Produto.Models.Produto> Produtos { get; set; }
+        public DbSet<GestaoMedicamentos.Produto.Models.Lote> Lotes { get; set; }
+        public DbSet<GestaoMedicamentos.Produto.Models.Transacao> Transacoes { get; set; }
     }
 }
