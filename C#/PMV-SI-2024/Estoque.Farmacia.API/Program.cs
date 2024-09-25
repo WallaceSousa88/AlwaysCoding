@@ -19,8 +19,6 @@ builder.Services.AddSwaggerGen();
 
 builder.Services.AddScoped<AutenticacaoService>();
 
-var app = builder.Build();
-
 var key = Encoding.ASCII.GetBytes(builder.Configuration.GetSection("AppSettings:Secret").Value);
 
 builder.Services.AddAuthentication(x =>
@@ -40,6 +38,8 @@ builder.Services.AddAuthentication(x =>
         ValidateAudience = false
     };
 });
+
+var app = builder.Build();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
