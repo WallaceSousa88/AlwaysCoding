@@ -1,0 +1,10 @@
+upd PMV-SI-2024
+
+1.	novo projeto 'asp.net core web api'
+2.	configurar projeto deixando a opcao 'enable open api support' marcada (swagger automatico)
+3.	configurar 'appsettings.json' para conectar com o sql server local
+4. 	no 'package manager console' instale os pacotes 'Install-Package Microsoft.EntityFrameworkCore' , 'Install-Package Microsoft.EntityFrameworkCore.SqlServer' e 'Install-Package Microsoft.EntityFrameworkCore.Tools'
+5.	apagar exemplos 'weather'
+6.	criar pasta 'models' e dentro criar as classes [Fornecedor, Medicamento, Lote, Entrada, Saida]
+7.	criar pasta 'data' e dentro criar classe para gerenciar o contexto do bd
+8.	fazer migração do bd pelo 'package manger console' 
