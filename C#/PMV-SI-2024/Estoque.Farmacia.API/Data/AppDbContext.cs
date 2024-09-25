@@ -17,6 +17,7 @@ namespace Estoque.Farmacia.API.Data
             }
         }
 
+        public DbSet<Usuario> Usuarios { get; set; }
         public DbSet<Fornecedor> Fornecedores { get; set; }
         public DbSet<Medicamento> Medicamentos { get; set; }
         public DbSet<Lote> Lotes { get; set; }
