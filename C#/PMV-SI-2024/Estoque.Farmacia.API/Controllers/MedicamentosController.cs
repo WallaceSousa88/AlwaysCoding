@@ -53,6 +53,30 @@ namespace Estoque.Farmacia.API.Controllers
             return Ok(medicamento);
         }
 
+        [HttpGet("{id}/estoque")]
+        public async Task<ActionResult<int>> ObterEstoqueMedicamento(int id)
+        {
+            var totalEntradas = await _context.Entradas
+                .Join(_context.Lotes,
+                      e => e.LoteId,
+                      l => l.Id,
+                      (e, l) => new { Entrada = e, Lote = l })
+                .Where(el => el.Lote.MedicamentoId == id)
+                .SumAsync(el => el.Entrada.QuantidadeRecebida);
+
+            var totalSaidas = await _context.Saidas
+                .Join(_context.Lotes,
+                      s => s.LoteId,
+                      l => l.Id,
+                      (s, l) => new { Saida = s, Lote = l })
+                .Where(sl => sl.Lote.MedicamentoId == id)
+                .SumAsync(sl => sl.Saida.QuantidadeSaida);
+
+            var estoqueAtual = totalEntradas - totalSaidas;
+
+            return Ok(estoqueAtual);
+        }
+
         // POST: api/Medicamentos
         [HttpPost]
         public async Task<ActionResult<Medicamento>> Criar([Bind("NomeComercial, PrecoCusto, PrecoVenda, FornecedorId")] Medicamento medicamento)
