@@ -72,7 +72,7 @@ namespace Estoque.Farmacia.API.Migrations
                     Quantidade = table.Column<int>(type: "int", nullable: false),
                     DataFabricacao = table.Column<DateTime>(type: "datetime2", nullable: false),
                     DataValidade = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    MedicamentoId = table.Column<int>(type: "int", nullable: false)
+                    MedicamentoId = table.Column<int>(type: "int", nullable: true),
                 },
                 constraints: table =>
                 {

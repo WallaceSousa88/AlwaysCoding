@@ -21,30 +21,42 @@ namespace Estoque.Farmacia.API.Controllers
 
         // GET: api/Saidas
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Saida>>> ObterTodos()
+        public async Task<ActionResult<IEnumerable<object>>> ObterTodos()
         {
-            return await _context.Saidas.Include(s => s.Lote).ToListAsync();
+            var saidas = await _context.Saidas
+                .Join(_context.Lotes,
+                      s => s.LoteId,
+                      l => l.Id,
+                      (s, l) => new { Saida = s, Lote = l })
+                .ToListAsync();
+
+            return Ok(saidas);
         }
 
         // GET: api/Saidas/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<Saida>> ObterPorId(int id)
+        public async Task<ActionResult<object>> ObterPorId(int id)
         {
-            var saida = await _context.Saidas
-                .Include(s => s.Lote)
-                .FirstOrDefaultAsync(m => m.Id == id);
+            var saida = await _context.Saidas.FindAsync(id);
 
             if (saida == null)
             {
                 return NotFound();
             }
 
-            return saida;
+            var lote = await _context.Lotes.FindAsync(saida.LoteId);
+
+            if (lote == null)
+            {
+                return NotFound("Saida encontrada, mas o Lote associado não existe.");
+            }
+
+            return Ok(new { Saida = saida, Lote = lote });
         }
 
         // POST: api/Saidas
         [HttpPost]
-        public async Task<ActionResult<Saida>> Criar(Saida saida)
+        public async Task<ActionResult<Saida>> Criar([Bind("DataSaida, QuantidadeSaida, LoteId")] Saida saida)
         {
             _context.Saidas.Add(saida);
             await _context.SaveChangesAsync();

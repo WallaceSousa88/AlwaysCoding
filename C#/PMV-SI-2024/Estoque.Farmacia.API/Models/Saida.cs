@@ -6,6 +6,5 @@
         public int QuantidadeSaida { get; set; }
 
         public int LoteId { get; set; } // Chave estrangeira
-        public Lote Lote { get; set; } // Relacionamento N:1
     }
 }

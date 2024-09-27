@@ -21,30 +21,41 @@ namespace Estoque.Farmacia.API.Controllers
 
         // GET: api/Medicamentos
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Medicamento>>> ObterTodos()
+        public async Task<ActionResult<IEnumerable<object>>> ObterTodos()
         {
-            return await _context.Medicamentos.Include(m => m.Fornecedor).ToListAsync();
+            var medicamentos = await _context.Medicamentos
+                .Join(_context.Fornecedores,
+                      m => m.FornecedorId,
+                      f => f.Id,
+                      (m, f) => new { Medicamento = m, Fornecedor = f })
+                .ToListAsync();
+
+            return Ok(medicamentos);
         }
 
         // GET: api/Medicamentos/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<Medicamento>> ObterPorId(int id)
+        public async Task<ActionResult<object?>> ObterPorId(int id)
         {
             var medicamento = await _context.Medicamentos
-                .Include(m => m.Fornecedor)
-                .FirstOrDefaultAsync(m => m.Id == id);
+                .Where(m => m.Id == id)
+                .Join(_context.Fornecedores,
+                      m => m.FornecedorId,
+                      f => f.Id,
+                      (m, f) => new { Medicamento = m, Fornecedor = f })
+                .FirstOrDefaultAsync();
 
             if (medicamento == null)
             {
                 return NotFound();
             }
 
-            return medicamento;
+            return Ok(medicamento);
         }
 
         // POST: api/Medicamentos
         [HttpPost]
-        public async Task<ActionResult<Medicamento>> Criar(Medicamento medicamento)
+        public async Task<ActionResult<Medicamento>> Criar([Bind("NomeComercial, PrecoCusto, PrecoVenda, FornecedorId")] Medicamento medicamento)
         {
             _context.Medicamentos.Add(medicamento);
             await _context.SaveChangesAsync();

@@ -23,7 +23,7 @@ namespace Estoque.Farmacia.API.Services
             _configuration = configuration;
         }
 
-        public async Task<Usuario> AutenticarUsuario(string nomeUsuario, string senha)
+        public async Task<Usuario?> AutenticarUsuario(string nomeUsuario, string senha)
         {
             var usuario = await _context.Usuarios.FirstOrDefaultAsync(u => u.NomeUsuario == nomeUsuario);
 
@@ -37,18 +37,27 @@ namespace Estoque.Farmacia.API.Services
 
         public string GerarJwtToken(Usuario usuario)
         {
-            var tokenHandler = new JwtSecurityTokenHandler();
-            var key = Encoding.ASCII.GetBytes(_configuration.GetSection("AppSettings:Secret").Value);
+            var secret = _configuration.GetSection("AppSettings:Secret").Value;
+            if (string.IsNullOrEmpty(secret))
+            {
+                throw new InvalidOperationException("AppSettings:Secret não está configurado.");
+            }
+
+            var key = Encoding.ASCII.GetBytes(secret);
+
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = new ClaimsIdentity(new Claim[]
                 {
-                    new Claim(ClaimTypes.Name, usuario.Id.ToString())
+            new Claim(ClaimTypes.Name, usuario.Id.ToString())
                 }),
-                Expires = DateTime.UtcNow.AddDays(7),
+                Expires = DateTime.UtcNow.AddDays(7), // Token expira em 7 dias
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
             };
+
+            var tokenHandler = new JwtSecurityTokenHandler();
             var token = tokenHandler.CreateToken(tokenDescriptor);
+
             return tokenHandler.WriteToken(token);
         }
 
