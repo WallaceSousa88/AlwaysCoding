@@ -42,38 +42,3 @@ if winner == 'Tie' :
     print('We both choose' , computer_choice + ', play again.')
 else :
     print(winner , 'won. The computer chose' , computer_choice + '.')
-
-# -----
-
-# if bank_balance >= ferrari_cost :
-#     print('Why not?')
-#     print('Go ahead, buy it')
-# else :
-#     print('Sorry')s
-#     print('Try again next week')
-
-# if bank_balance > ferrari_cost or loan == ferrari_cost :
-#     print('Buy it!')
-
-# if not bank_balance < ferrari_cost :
-#     print('Buy it!')
-
-# -----
-
-# if number_of_scoops == 0 :
-#     print("You didn't want ice cream?")
-#     print("We have lots of flavors.")
-# elif number_of_scoops == 1 :
-#     print("A single scoop for you, coming up.")
-# elif number_of_scoops == 2 :
-#     print("Oh, two scoops for you!")
-# elif number_of_scoops >= 3 :
-#     print("Wow, that's a lot of scoops!")
-# else :
-#     print("I'm sorry I can't give you negative scoops!")
-
-# scoops = 5
-# while scoops > 0 :
-#     print("Another scoop!")
-#     scoops = scoops - 1
-# print("Life without ice cream isn't the same.")
