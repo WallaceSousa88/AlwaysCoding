@@ -1,19 +1,43 @@
 .App {
   text-align: center;
-  background-color: #ffffff; /* Fundo branco */
-  color: #000000; /* Texto preto */
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Fonte da Microsoft */
+  background-color: #ffffff;
+  color: #000000;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
 .App-logo {
   height: 40px;
   pointer-events: none;
+  margin-right: 20px;
 }
 
 .App-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   position: absolute;
   top: 10px;
   left: 10px;
+}
+
+.App-nav ul {
+  list-style-type: none;
+  padding: 0;
+  display: flex;
+}
+
+.App-nav ul li {
+  margin-right: 20px;
+}
+
+.App-nav ul li a {
+  text-decoration: none;
+  color: #0078d4;
+  font-size: 16px;
+}
+
+.App-nav ul li a:hover {
+  text-decoration: underline;
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -28,12 +52,12 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  font-size: 18px; /* Tamanho da fonte */
-  padding: 20px; /* Espaçamento interno */
+  font-size: 18px;
+  padding: 20px;
 }
 
 .App-footer {
-  background-color: #f0f0f0; /* Cor de fundo do rodapé */
+  background-color: #f0f0f0;
   padding: 20px;
   font-size: 16px;
   color: #000000;
@@ -41,11 +65,11 @@
   width: 100%;
   bottom: 0;
   text-align: center;
-  border-top: 1px solid #dcdcdc; /* Linha de separação */
+  border-top: 1px solid #dcdcdc;
 }
 
 .App-link {
-  color: #0078d4; /* Azul padrão da Microsoft */
+  color: #0078d4;
 }
 
 @keyframes App-logo-spin {
