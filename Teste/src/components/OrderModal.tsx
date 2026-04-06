@@ -248,7 +248,7 @@ export const OrderModal = ({
   const updateItemQuantity = (key: keyof OrderDetails, itemName: string, quantity: number) => {
     const currentItems = (formData.details[key] as any).items as ProductionItem[];
     const newItems = currentItems.map(i => 
-      i.name === itemName ? { ...i, quantity: Math.max(1, quantity) } : i
+      i.name === itemName ? { ...i, quantity: Math.max(0, quantity) } : i
     );
 
     setFormData(prev => ({
@@ -485,9 +485,10 @@ export const OrderModal = ({
                         <span className="text-[10px] font-bold text-zinc-400 uppercase">Qtd</span>
                         <input 
                           type="number"
-                          min="1"
+                          step="any"
+                          min="0"
                           value={selectedItem.quantity}
-                          onChange={(e) => updateItemQuantity(config.key, opt, parseInt(e.target.value) || 1)}
+                          onChange={(e) => updateItemQuantity(config.key, opt, parseFloat(e.target.value) || 0)}
                           className="w-full bg-transparent border-none outline-none text-xs font-bold text-zinc-900 dark:text-zinc-100"
                         />
                       </div>
@@ -519,9 +520,10 @@ export const OrderModal = ({
                         <span className="text-[10px] font-bold text-zinc-400 uppercase">Qtd</span>
                         <input 
                           type="number"
-                          min="1"
+                          step="any"
+                          min="0"
                           value={selectedItem.quantity}
-                          onChange={(e) => updateItemQuantity(config.key, item, parseInt(e.target.value) || 1)}
+                          onChange={(e) => updateItemQuantity(config.key, item, parseFloat(e.target.value) || 0)}
                           className="w-full bg-transparent border-none outline-none text-xs font-bold text-zinc-900 dark:text-zinc-100"
                         />
                       </div>

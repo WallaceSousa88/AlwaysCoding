@@ -72,7 +72,7 @@ export const Modal = ({ isOpen, onClose, title, children, zIndex = 200, noPaddin
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="relative w-full md:w-[66.666667%] max-w-5xl bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+          className="relative w-full md:w-[85%] h-[85%] bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl overflow-hidden flex flex-col"
         >
           <div className="px-6 py-4 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between flex-shrink-0">
             <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 uppercase tracking-widest">{title}</h2>

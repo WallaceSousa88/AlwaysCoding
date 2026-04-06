@@ -69,7 +69,7 @@ export const ClientModal = ({ isOpen, onClose, onSubmit, editingClient, fieldErr
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={editingClient ? 'EDITAR CLIENTE' : 'NOVO CLIENTE'} noPadding>
-      <form onSubmit={handleSubmit} noValidate className="p-6 space-y-4 max-h-[80vh] overflow-y-auto custom-scrollbar">
+      <form onSubmit={handleSubmit} noValidate className="p-6 space-y-4 flex-1 overflow-y-auto custom-scrollbar">
         <div className="flex gap-6 mb-6 p-4 bg-zinc-50 dark:bg-zinc-900/50 rounded-xl border border-zinc-100 dark:border-zinc-800">
           <label className="flex items-center gap-2 cursor-pointer group">
             <input 
@@ -183,7 +183,6 @@ export const ClientModal = ({ isOpen, onClose, onSubmit, editingClient, fieldErr
             <Input 
               label="ENDEREÇO" 
               icon={<MapPin size={18} />}
-              required
               value={formData.endereco} 
               onChange={(e: any) => setFormData({ ...formData, endereco: e.target.value.toUpperCase() })}
               error={fieldErrors.endereco}
@@ -216,7 +215,6 @@ export const ClientModal = ({ isOpen, onClose, onSubmit, editingClient, fieldErr
           <Input 
             label="TELEFONE 1" 
             icon={<Phone size={18} />}
-            required
             value={formData.telefone1} 
             onChange={(e: any) => setFormData({ ...formData, telefone1: e.target.value })}
             error={fieldErrors.telefone1}
@@ -231,7 +229,6 @@ export const ClientModal = ({ isOpen, onClose, onSubmit, editingClient, fieldErr
             <Input 
               label="EMAIL" 
               icon={<Mail size={18} />}
-              required
               type="email" 
               value={formData.email} 
               onChange={(e: any) => setFormData({ ...formData, email: e.target.value.toLowerCase() })}
@@ -321,7 +318,7 @@ export const SupplierModal = ({ isOpen, onClose, onSubmit, editingSupplier, fiel
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={editingSupplier ? 'EDITAR FORNECEDOR' : 'NOVO FORNECEDOR'} noPadding>
-      <form onSubmit={handleSubmit} noValidate className="p-6 space-y-4 max-h-[80vh] overflow-y-auto custom-scrollbar">
+      <form onSubmit={handleSubmit} noValidate className="p-6 space-y-4 flex-1 overflow-y-auto custom-scrollbar">
         <div className="flex gap-6 mb-6 p-4 bg-zinc-50 dark:bg-zinc-900/50 rounded-xl border border-zinc-100 dark:border-zinc-800">
           <label className="flex items-center gap-2 cursor-pointer group">
             <input 

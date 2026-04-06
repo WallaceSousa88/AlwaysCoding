@@ -121,7 +121,7 @@ export const OrderDetailModal = ({
                 </div>
                 {quantity !== null && (
                   <span className="text-[10px] font-bold text-zinc-400 bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded">
-                    {quantity} UN
+                    {quantity.toString().replace('.', ',')} UN
                   </span>
                 )}
               </div>
