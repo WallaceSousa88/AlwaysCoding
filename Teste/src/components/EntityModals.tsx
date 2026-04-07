@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, AlertTriangle, User, CreditCard, Calendar, Briefcase, FileText, Phone, Mail, MapPin, Globe } from 'lucide-react';
 import { Modal, Input, Button } from './Common';
 import { Client, Supplier, Asset } from '../types';
+import { maskCPF, maskCNPJ, maskPhone, maskCEP } from '../lib/masks';
 
 interface ClientModalProps {
   isOpen: boolean;
@@ -113,7 +114,7 @@ export const ClientModal = ({ isOpen, onClose, onSubmit, editingClient, fieldErr
                 icon={<CreditCard size={18} />}
                 required 
                 value={formData.cpf} 
-                onChange={(e: any) => setFormData({ ...formData, cpf: e.target.value })}
+                onChange={(e: any) => setFormData({ ...formData, cpf: maskCPF(e.target.value) })}
                 error={fieldErrors.cpf}
               />
               <Input 
@@ -147,7 +148,7 @@ export const ClientModal = ({ isOpen, onClose, onSubmit, editingClient, fieldErr
                 icon={<CreditCard size={18} />}
                 required 
                 value={formData.cnpj} 
-                onChange={(e: any) => setFormData({ ...formData, cnpj: e.target.value })}
+                onChange={(e: any) => setFormData({ ...formData, cnpj: maskCNPJ(e.target.value) })}
                 error={fieldErrors.cnpj}
               />
               <Input 
@@ -204,7 +205,7 @@ export const ClientModal = ({ isOpen, onClose, onSubmit, editingClient, fieldErr
             label="CEP" 
             icon={<MapPin size={18} />}
             value={formData.cep} 
-            onChange={(e: any) => setFormData({ ...formData, cep: e.target.value })}
+            onChange={(e: any) => setFormData({ ...formData, cep: maskCEP(e.target.value) })}
           />
           <Input 
             label="CIDADE" 
@@ -216,14 +217,14 @@ export const ClientModal = ({ isOpen, onClose, onSubmit, editingClient, fieldErr
             label="TELEFONE 1" 
             icon={<Phone size={18} />}
             value={formData.telefone1} 
-            onChange={(e: any) => setFormData({ ...formData, telefone1: e.target.value })}
+            onChange={(e: any) => setFormData({ ...formData, telefone1: maskPhone(e.target.value) })}
             error={fieldErrors.telefone1}
           />
           <Input 
             label="TELEFONE 2" 
             icon={<Phone size={18} />}
             value={formData.telefone2} 
-            onChange={(e: any) => setFormData({ ...formData, telefone2: e.target.value })}
+            onChange={(e: any) => setFormData({ ...formData, telefone2: maskPhone(e.target.value) })}
           />
           <div className="md:col-span-2">
             <Input 
@@ -362,7 +363,7 @@ export const SupplierModal = ({ isOpen, onClose, onSubmit, editingSupplier, fiel
                 icon={<CreditCard size={18} />}
                 required 
                 value={formData.cpf} 
-                onChange={(e: any) => setFormData({ ...formData, cpf: e.target.value })}
+                onChange={(e: any) => setFormData({ ...formData, cpf: maskCPF(e.target.value) })}
                 error={fieldErrors.cpf}
               />
               <Input 
@@ -396,7 +397,7 @@ export const SupplierModal = ({ isOpen, onClose, onSubmit, editingSupplier, fiel
                 icon={<CreditCard size={18} />}
                 required 
                 value={formData.cnpj} 
-                onChange={(e: any) => setFormData({ ...formData, cnpj: e.target.value })}
+                onChange={(e: any) => setFormData({ ...formData, cnpj: maskCNPJ(e.target.value) })}
                 error={fieldErrors.cnpj}
               />
               <Input 
@@ -454,7 +455,7 @@ export const SupplierModal = ({ isOpen, onClose, onSubmit, editingSupplier, fiel
             label="CEP" 
             icon={<MapPin size={18} />}
             value={formData.cep} 
-            onChange={(e: any) => setFormData({ ...formData, cep: e.target.value })}
+            onChange={(e: any) => setFormData({ ...formData, cep: maskCEP(e.target.value) })}
           />
           <Input 
             label="CIDADE" 
@@ -467,14 +468,14 @@ export const SupplierModal = ({ isOpen, onClose, onSubmit, editingSupplier, fiel
             icon={<Phone size={18} />}
             required
             value={formData.telefone1} 
-            onChange={(e: any) => setFormData({ ...formData, telefone1: e.target.value })}
+            onChange={(e: any) => setFormData({ ...formData, telefone1: maskPhone(e.target.value) })}
             error={fieldErrors.telefone1}
           />
           <Input 
             label="TELEFONE 2" 
             icon={<Phone size={18} />}
             value={formData.telefone2} 
-            onChange={(e: any) => setFormData({ ...formData, telefone2: e.target.value })}
+            onChange={(e: any) => setFormData({ ...formData, telefone2: maskPhone(e.target.value) })}
           />
           <Input 
             label="EMAIL" 

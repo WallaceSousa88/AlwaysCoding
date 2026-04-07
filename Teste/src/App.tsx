@@ -30,6 +30,7 @@ import { OrderModal } from './components/OrderModal';
 import { OrderDetailModal } from './components/OrderDetailModal';
 import { ClientModal, SupplierModal } from './components/EntityModals';
 import { AssetModal } from './components/assets/AssetModals';
+import { validateEmail, validateCPF, validateCNPJ, validatePhone, validateCEP } from './lib/validation';
 import { FinancialDetailModal } from './components/FinancialDetailModal';
 import { ConfirmModal } from './components/Common';
 
@@ -157,6 +158,41 @@ export default function App() {
   const [isSupplierModalOpen, setIsSupplierModalOpen] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
   const [supplierFieldErrors, setSupplierFieldErrors] = useState<Record<string, string>>({});
+
+  const validateEntityData = (data: any, isSupplier: boolean = false) => {
+    const errors: Record<string, string> = {};
+    const typeField = isSupplier ? 'tipo' : 'tipo_cliente';
+    
+    if (data[typeField] === 'PF') {
+      if (!data.name) errors.name = 'NOME É OBRIGATÓRIO';
+      if (!data.cpf) {
+        errors.cpf = 'CPF É OBRIGATÓRIO';
+      } else if (!validateCPF(data.cpf)) {
+        errors.cpf = 'CPF INVÁLIDO';
+      }
+    } else {
+      if (!data.razao_social) errors.razao_social = 'RAZÃO SOCIAL É OBRIGATÓRIA';
+      if (!data.cnpj) {
+        errors.cnpj = 'CNPJ É OBRIGATÓRIO';
+      } else if (!validateCNPJ(data.cnpj)) {
+        errors.cnpj = 'CNPJ INVÁLIDO';
+      }
+    }
+
+    if (data.email && !validateEmail(data.email)) {
+      errors.email = 'EMAIL INVÁLIDO';
+    }
+
+    if (data.telefone1 && !validatePhone(data.telefone1)) {
+      errors.telefone1 = 'TELEFONE INVÁLIDO';
+    }
+
+    if (data.cep && !validateCEP(data.cep)) {
+      errors.cep = 'CEP INVÁLIDO';
+    }
+
+    return errors;
+  };
   const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
   const [editingAsset, setEditingAsset] = useState<Asset | null>(null);
   const [selectedOrderForDetail, setSelectedOrderForDetail] = useState<Order | null>(null);
@@ -353,14 +389,7 @@ export default function App() {
   };
 
   const addClient = async (data: any) => {
-    const errors: Record<string, string> = {};
-    if (data.tipo_cliente === 'PF') {
-      if (!data.name) errors.name = 'NOME É OBRIGATÓRIO';
-      if (!data.cpf) errors.cpf = 'CPF É OBRIGATÓRIO';
-    } else {
-      if (!data.razao_social) errors.razao_social = 'RAZÃO SOCIAL É OBRIGATÓRIA';
-      if (!data.cnpj) errors.cnpj = 'CNPJ É OBRIGATÓRIO';
-    }
+    const errors = validateEntityData(data);
 
     if (Object.keys(errors).length > 0) {
       setClientFieldErrors(errors);
@@ -379,14 +408,7 @@ export default function App() {
   };
 
   const updateClient = async (id: number, data: any) => {
-    const errors: Record<string, string> = {};
-    if (data.tipo_cliente === 'PF') {
-      if (!data.name) errors.name = 'NOME É OBRIGATÓRIO';
-      if (!data.cpf) errors.cpf = 'CPF É OBRIGATÓRIO';
-    } else {
-      if (!data.razao_social) errors.razao_social = 'RAZÃO SOCIAL É OBRIGATÓRIA';
-      if (!data.cnpj) errors.cnpj = 'CNPJ É OBRIGATÓRIO';
-    }
+    const errors = validateEntityData(data);
 
     if (Object.keys(errors).length > 0) {
       setClientFieldErrors(errors);
@@ -420,14 +442,7 @@ export default function App() {
   };
 
   const updateSupplierEntity = async (id: number, data: any) => {
-    const errors: Record<string, string> = {};
-    if (data.tipo === 'PF') {
-      if (!data.name) errors.name = 'NOME É OBRIGATÓRIO';
-      if (!data.cpf) errors.cpf = 'CPF É OBRIGATÓRIO';
-    } else {
-      if (!data.razao_social) errors.razao_social = 'RAZÃO SOCIAL É OBRIGATÓRIA';
-      if (!data.cnpj) errors.cnpj = 'CNPJ É OBRIGATÓRIO';
-    }
+    const errors = validateEntityData(data, true);
 
     if (Object.keys(errors).length > 0) {
       setSupplierFieldErrors(errors);
@@ -540,6 +555,12 @@ export default function App() {
   };
 
   const addSupplier = async (data: any) => {
+    const errors = validateEntityData(data, true);
+
+    if (Object.keys(errors).length > 0) {
+      setSupplierFieldErrors(errors);
+      return;
+    }
     try {
       const payload = typeof data === 'string' ? { name: data, contact: '' } : data;
       
