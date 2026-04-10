@@ -1,0 +1,129 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Fields: name (string), email (string), role (string)
+    //
+    // Collection: products
+    // Fields: name (string), category (string), unit (string), cost_price (number), quantity (number), min_quantity (number), photo (string)
+    //
+    // Collection: clients
+    // Fields: tipo_cliente (string), name (string), cpf (string), rg (string), data_nascimento (string), razao_social (string), cnpj (string), nome_fantasia (string), ie (string), im (string), contato_responsavel (string), endereco (string), complemento (string), bairro (string), cep (string), cidade (string), telefone1 (string), telefone2 (string), email (string)
+    //
+    // Collection: suppliers
+    // Fields: tipo (string), name (string), cpf (string), rg (string), data_nascimento (string), razao_social (string), cnpj (string), nome_fantasia (string), ie (string), im (string), contato_responsavel (string), endereco (string), complemento (string), bairro (string), cep (string), cidade (string), telefone1 (string), telefone2 (string), email (string), website (string)
+    //
+    // Collection: assets
+    // Fields: description (string), asset_number (string), category (string), purchase_date (string), purchase_value (number), depreciation_type (string), depreciation_percentage (number), photo (string), status (string), disposal_type (string), disposal_date (string), disposal_value (number)
+    //
+    // Collection: orders
+    // Fields: title (string), description (string), status (string), client_id (string), details (string), created_at (timestamp)
+    //
+    // Collection: movements
+    // Fields: product_id (string), type (string), quantity (number), date (timestamp), supplier_id (string), doc_number (string), issue_date (string), location (string), unit_price (number), reason (string), destination (string), xml (string), invoice_pdf (string)
+    //
+    // Collection: categories, locations, units
+    // Fields: name (string)
+    //
+    // Collection: audit_logs
+    // Fields: user_id (string), action (string), details (string), created_at (timestamp)
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin' ||
+          request.auth.token.email == "Diesel.087@gmail.com" ||
+          request.auth.token.email == "admin@skysmart.com");
+    }
+
+    function hasRole(role) {
+      return isAuthenticated() && 
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == role || isAdmin());
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    function isValidString(val, min, max) {
+      return val is string && val.size() >= min && val.size() <= max;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    match /products/{productId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+
+    match /clients/{clientId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+
+    match /suppliers/{supplierId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+
+    match /assets/{assetId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+
+    match /orders/{orderId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+
+    match /movements/{movementId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+
+    match /categories/{categoryId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+
+    match /locations/{locationId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+
+    match /units/{unitId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+
+    match /audit_logs/{logId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update, delete: if isAdmin();
+    }
+    
+    match /test/connection {
+      allow read: if true;
+    }
+  }
+}

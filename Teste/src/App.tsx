@@ -13,10 +13,28 @@ import {
   FileText,
   RotateCcw,
   Edit,
-  Trash2
+  Trash2,
+  Loader2,
+  ShieldCheck,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Product, Client, Supplier, Asset, Order, Movement, OrderStatus, OrderDetails } from './types';
+import { 
+  onAuthStateChanged, 
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signOut,
+  User as FirebaseUser
+} from 'firebase/auth';
+import { 
+  collection, 
+  query, 
+  orderBy, 
+  Timestamp 
+} from 'firebase/firestore';
+import { auth, db } from './firebase';
+import { Product, Client, Supplier, Asset, Order, Movement, OrderStatus, OrderDetails, User } from './types';
 import { apiService } from './services/apiService';
 import { KANBAN_COLUMNS } from './constants';
 import { Dashboard } from './components/Dashboard';
@@ -25,7 +43,7 @@ import { Kanban } from './components/Kanban';
 import { GenericList } from './components/GenericList';
 import { Settings as SettingsView } from './components/Settings';
 import { Assets } from './components/Assets';
-import { SidebarItem, cn, ErrorAlert } from './components/Common';
+import { SidebarItem, cn, ErrorAlert, Button } from './components/Common';
 import { OrderModal } from './components/OrderModal';
 import { OrderDetailModal } from './components/OrderDetailModal';
 import { ClientModal, SupplierModal } from './components/EntityModals';
@@ -34,9 +52,174 @@ import { validateEmail, validateCPF, validateCNPJ, validatePhone, validateCEP } 
 import { FinancialDetailModal } from './components/FinancialDetailModal';
 import { ConfirmModal } from './components/Common';
 
+// --- Login Component ---
+
+const Login = ({ onLogin }: { onLogin: () => void }) => {
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError(null);
+
+    const normalizedUsername = username.toLowerCase().trim();
+    const normalizedPassword = password.toLowerCase().trim(); // User specifically asked for admin/admin lowercase
+
+    let email = normalizedUsername;
+    let pass = normalizedPassword;
+
+    // Special handling for admin/admin
+    if (normalizedUsername === 'admin' && normalizedPassword === 'admin') {
+      email = 'admin@skysmart.com';
+      pass = 'adminadmin';
+    } else if (!normalizedUsername.includes('@')) {
+      // If it's a simple username, append a domain to make it an email for Firebase Auth
+      email = `${normalizedUsername}@skysmart.com`;
+    }
+
+    try {
+      try {
+        await signInWithEmailAndPassword(auth, email, pass);
+      } catch (err: any) {
+        // Modern Firebase Auth returns 'auth/invalid-credential' for both not found and wrong password
+        if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
+          // Special case for bootstrap admin
+          if (normalizedUsername === 'admin' && normalizedPassword === 'admin') {
+            try {
+              await createUserWithEmailAndPassword(auth, email, pass);
+            } catch (createErr: any) {
+              // If creation fails (e.g. user already exists but password was wrong), throw original error
+              throw err;
+            }
+          } else {
+            throw err;
+          }
+        } else {
+          throw err;
+        }
+      }
+      onLogin();
+    } catch (err: any) {
+      console.error('Login error:', err);
+      if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+        setError('USUÁRIO OU SENHA INCORRETOS');
+      } else {
+        setError('ERRO AO REALIZAR LOGIN. TENTE NOVAMENTE.');
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-zinc-50 dark:bg-zinc-950 p-4">
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="max-w-md w-full bg-white dark:bg-zinc-900 p-8 rounded-3xl shadow-2xl border border-zinc-100 dark:border-zinc-800"
+      >
+        <div className="text-center mb-8">
+          <div className="w-20 h-20 bg-zinc-900 dark:bg-white rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg">
+            <HardDrive className="text-white dark:text-zinc-900" size={40} />
+          </div>
+          <h1 className="text-3xl font-black text-zinc-900 dark:text-white mb-2 tracking-tight uppercase">SKYSMART</h1>
+          <p className="text-zinc-500 dark:text-zinc-400 uppercase text-xs font-bold tracking-widest">Gestão Inteligente</p>
+        </div>
+
+        <form onSubmit={handleLogin} className="space-y-4">
+          {error && <ErrorAlert>{error}</ErrorAlert>}
+          
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-1">Usuário</label>
+            <div className="relative">
+              <div className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400">
+                <Users size={18} />
+              </div>
+              <input 
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className="w-full pl-10 pr-4 py-3 bg-zinc-50 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 rounded-xl focus:ring-2 focus:ring-zinc-900 dark:focus:ring-zinc-100 outline-none transition-all text-sm font-medium"
+                required
+              />
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-1">Senha</label>
+            <div className="relative">
+              <div className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400">
+                <ShieldCheck size={18} />
+              </div>
+              <input 
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full pl-10 pr-12 py-3 bg-zinc-50 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 rounded-xl focus:ring-2 focus:ring-zinc-900 dark:focus:ring-zinc-100 outline-none transition-all text-sm font-medium"
+                placeholder="••••••••"
+                required
+              />
+              {password.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors"
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              )}
+            </div>
+          </div>
+
+          <Button 
+            type="submit"
+            variant="primary" 
+            disabled={isLoading}
+            className="w-full py-4 flex items-center justify-center gap-3 text-sm font-bold uppercase tracking-widest"
+          >
+            {isLoading ? <Loader2 className="animate-spin" size={20} /> : 'Acessar Sistema'}
+          </Button>
+        </form>
+        
+        <p className="mt-8 text-center text-[10px] text-zinc-400 dark:text-zinc-500 uppercase tracking-widest font-bold">
+          SkySmart v1.0 • 2026
+        </p>
+      </motion.div>
+    </div>
+  );
+};
+
 // --- Main App ---
 
 export default function App() {
+  const [user, setUser] = useState<FirebaseUser | null>(null);
+  const [isAuthReady, setIsAuthReady] = useState(false);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        // If it's the bootstrap admin, they are always allowed
+        if (firebaseUser.email === 'admin@skysmart.com' || firebaseUser.email === 'Diesel.087@gmail.com') {
+          setUser(firebaseUser);
+        } else {
+          // For other users, we should ideally check if they exist in the users collection
+          // Since we have systemUsers state, we can use it, but it might not be ready.
+          // However, the firestore rules will block them anyway if they try to read/write.
+          // To be safe, we can do a quick check here if systemUsers is already populated.
+          setUser(firebaseUser);
+        }
+      } else {
+        setUser(null);
+      }
+      setIsAuthReady(true);
+    });
+    return () => unsubscribe();
+  }, []);
+
   const [isDarkMode, setIsDarkMode] = useState(() => {
     if (typeof window !== 'undefined') {
       return window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -81,9 +264,44 @@ export default function App() {
   const [clients, setClients] = useState<Client[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [assets, setAssets] = useState<Asset[]>([]);
-  const [categories, setCategories] = useState<{id: number, name: string}[]>([]);
-  const [locations, setLocations] = useState<{id: number, name: string}[]>([]);
-  const [units, setUnits] = useState<{id: number, name: string}[]>([]);
+  const [systemUsers, setSystemUsers] = useState<User[]>([]);
+
+  const currentUserProfile = systemUsers.find(u => 
+    u.email === user?.email || 
+    (u.username && user?.email && u.username.toLowerCase() === user.email.split('@')[0].toLowerCase())
+  );
+  const isAdmin = (user?.email === 'admin@skysmart.com' || user?.email === 'Diesel.087@gmail.com' || currentUserProfile?.role === 'Administrador');
+  const userPermissions = isAdmin
+    ? ['dashboard', 'kanban', 'production', 'clients', 'suppliers', 'assets', 'inventory', 'financial', 'audit', 'settings']
+    : (currentUserProfile?.permissions || []);
+
+  const sidebarItems = [
+    { id: 'dashboard', icon: LayoutDashboard, label: "Painel" },
+    { id: 'kanban', icon: ClipboardList, label: "Kanban" },
+    { id: 'production', icon: FileText, label: "Ordem de Produção" },
+    { id: 'clients', icon: Users, label: "Clientes" },
+    { id: 'suppliers', icon: Truck, label: "Fornecedores" },
+    { id: 'assets', icon: HardDrive, label: "Patrimônios" },
+    { id: 'inventory', icon: Package, label: "Estoque" },
+    { id: 'financial', icon: DollarSign, label: "Financeiro" },
+    { id: 'audit', icon: RotateCcw, label: "Histórico" },
+    { id: 'settings', icon: Settings, label: "Configurações" },
+  ];
+
+  // Redirect to first available tab if current is not allowed
+  useEffect(() => {
+    if (user && userPermissions.length > 0 && !userPermissions.includes(activeTab as any)) {
+      const firstAvailable = sidebarItems.find(item => userPermissions.includes(item.id as any));
+      if (firstAvailable) {
+        setActiveTab(firstAvailable.id as any);
+      }
+    }
+  }, [user, userPermissions, activeTab]);
+
+  const visibleSidebarItems = sidebarItems.filter(item => userPermissions.includes(item.id as any));
+  const [categories, setCategories] = useState<{id: string | number, name: string}[]>([]);
+  const [locations, setLocations] = useState<{id: string | number, name: string}[]>([]);
+  const [units, setUnits] = useState<{id: string | number, name: string}[]>([]);
   const [movements, setMovements] = useState<Movement[]>([]);
   const [financialEntries, setFinancialEntries] = useState<any[]>([]);
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
@@ -91,6 +309,7 @@ export default function App() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [lastScrollY, setLastScrollY] = useState(0);
   const [globalError, setGlobalError] = useState<string | null>(null);
+  const [isFetching, setIsFetching] = useState(false);
   const mainContentRef = useRef<HTMLDivElement>(null);
 
   // Handle window resize to ensure sidebar state is consistent
@@ -158,38 +377,111 @@ export default function App() {
   const [isSupplierModalOpen, setIsSupplierModalOpen] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
   const [supplierFieldErrors, setSupplierFieldErrors] = useState<Record<string, string>>({});
+  const [assetFieldErrors, setAssetFieldErrors] = useState<Record<string, string>>({});
 
-  const validateEntityData = (data: any, isSupplier: boolean = false) => {
+  const validateEntityData = (data: any, isSupplier: boolean = false, editingId?: string | number) => {
     const errors: Record<string, string> = {};
     const typeField = isSupplier ? 'tipo' : 'tipo_cliente';
+    const list = isSupplier ? suppliers : clients;
     
     if (data[typeField] === 'PF') {
-      if (!data.name) errors.name = 'NOME É OBRIGATÓRIO';
+      if (!data.name) {
+        errors.name = 'NOME É OBRIGATÓRIO';
+      } else {
+        const isDuplicate = list.some(item => 
+          item.id !== editingId && 
+          (isSupplier ? (item as Supplier).name : (item as Client).name)?.toUpperCase() === data.name.toUpperCase()
+        );
+        if (isDuplicate) errors.name = 'NOME JÁ CADASTRADO';
+      }
+
       if (!data.cpf) {
         errors.cpf = 'CPF É OBRIGATÓRIO';
       } else if (!validateCPF(data.cpf)) {
         errors.cpf = 'CPF INVÁLIDO';
+      } else {
+        const isDuplicate = list.some(item => item.id !== editingId && item.cpf === data.cpf);
+        if (isDuplicate) errors.cpf = 'CPF JÁ CADASTRADO';
       }
     } else {
-      if (!data.razao_social) errors.razao_social = 'RAZÃO SOCIAL É OBRIGATÓRIA';
+      if (!data.razao_social) {
+        errors.razao_social = 'RAZÃO SOCIAL É OBRIGATÓRIA';
+      } else {
+        const isDuplicate = list.some(item => 
+          item.id !== editingId && 
+          item.razao_social?.toUpperCase() === data.razao_social.toUpperCase()
+        );
+        if (isDuplicate) errors.razao_social = 'RAZÃO SOCIAL JÁ CADASTRADA';
+      }
+
       if (!data.cnpj) {
         errors.cnpj = 'CNPJ É OBRIGATÓRIO';
       } else if (!validateCNPJ(data.cnpj)) {
         errors.cnpj = 'CNPJ INVÁLIDO';
+      } else {
+        const isDuplicate = list.some(item => item.id !== editingId && item.cnpj === data.cnpj);
+        if (isDuplicate) errors.cnpj = 'CNPJ JÁ CADASTRADO';
       }
     }
 
-    if (data.email && !validateEmail(data.email)) {
-      errors.email = 'EMAIL INVÁLIDO';
+    // Email uniqueness (required for suppliers)
+    if (data.email) {
+      if (!validateEmail(data.email)) {
+        errors.email = 'EMAIL INVÁLIDO';
+      } else {
+        const isDuplicate = list.some(item => item.id !== editingId && item.email?.toLowerCase() === data.email.toLowerCase());
+        if (isDuplicate) errors.email = 'EMAIL JÁ CADASTRADO';
+      }
     }
 
-    if (data.telefone1 && !validatePhone(data.telefone1)) {
-      errors.telefone1 = 'TELEFONE INVÁLIDO';
+    // Telefone 1 uniqueness
+    if (data.telefone1) {
+      if (!validatePhone(data.telefone1)) {
+        errors.telefone1 = 'TELEFONE INVÁLIDO';
+      } else {
+        const isDuplicate = list.some(item => item.id !== editingId && item.telefone1 === data.telefone1);
+        if (isDuplicate) errors.telefone1 = 'TELEFONE JÁ CADASTRADO';
+      }
+    }
+
+    // Endereco uniqueness
+    if (data.endereco) {
+      const isDuplicate = list.some(item => 
+        item.id !== editingId && 
+        item.endereco?.toUpperCase() === data.endereco.toUpperCase()
+      );
+      if (isDuplicate) errors.endereco = 'ENDEREÇO JÁ CADASTRADO';
     }
 
     if (data.cep && !validateCEP(data.cep)) {
       errors.cep = 'CEP INVÁLIDO';
     }
+
+    return errors;
+  };
+
+  const validateAssetData = (data: any, editingId?: string | number) => {
+    const errors: Record<string, string> = {};
+    
+    if (!data.description) {
+      errors.description = 'DESCRIÇÃO É OBRIGATÓRIA';
+    } else {
+      const isDuplicate = assets.some(a => a.id !== editingId && a.description.toUpperCase() === data.description.toUpperCase());
+      if (isDuplicate) errors.description = 'DESCRIÇÃO JÁ CADASTRADA';
+    }
+
+    if (!data.asset_number) {
+      errors.asset_number = 'NÚMERO É OBRIGATÓRIO';
+    } else {
+      const isDuplicate = assets.some(a => a.id !== editingId && a.asset_number === data.asset_number);
+      if (isDuplicate) errors.asset_number = 'NÚMERO JÁ CADASTRADO';
+    }
+
+    if (!data.category) errors.category = 'CATEGORIA É OBRIGATÓRIA';
+    if (!data.purchase_date) errors.purchase_date = 'DATA É OBRIGATÓRIA';
+    if (!data.purchase_value) errors.purchase_value = 'VALOR É OBRIGATÓRIO';
+    if (!data.depreciation_type) errors.depreciation_type = 'TIPO É OBRIGATÓRIO';
+    if (!data.depreciation_percentage) errors.depreciation_percentage = 'PERCENTUAL É OBRIGATÓRIO';
 
     return errors;
   };
@@ -223,10 +515,10 @@ export default function App() {
     });
   };
 
-  const [activeGenericMenuId, setActiveGenericMenuId] = useState<number | null>(null);
+  const [activeGenericMenuId, setActiveGenericMenuId] = useState<string | number | null>(null);
   const [genericMenuPosition, setGenericMenuPosition] = useState<{ top: number, left: number } | null>(null);
 
-  const handleGenericMenuClick = (e: React.MouseEvent, id: number) => {
+  const handleGenericMenuClick = (e: React.MouseEvent, id: string | number) => {
     e.stopPropagation();
     const rect = e.currentTarget.getBoundingClientRect();
     setGenericMenuPosition({ top: rect.bottom + window.scrollY, left: rect.right - 160 + window.scrollX });
@@ -234,30 +526,14 @@ export default function App() {
   };
 
   useEffect(() => {
-    fetchData();
-
-    // WebSocket for real-time updates
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const ws = new WebSocket(`${protocol}//${window.location.host}`);
-    
-    ws.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      if (data.type === 'ORDER_UPDATED' || data.type === 'INVENTORY_UPDATED' || data.type === 'AUDIT_LOG_UPDATED') {
-        fetchData();
-      }
-    };
-
-    return () => ws.close();
-  }, []);
-
-  useEffect(() => {
-    if (selectedOrderForDetail) {
-      const updated = orders.find(o => o.id === selectedOrderForDetail.id);
-      if (updated) setSelectedOrderForDetail(updated);
+    if (user) {
+      fetchData();
     }
-  }, [orders]);
+  }, [user]);
 
   const fetchData = async () => {
+    if (!user || isFetching) return;
+    setIsFetching(true);
     try {
       const [
         statsData,
@@ -270,8 +546,8 @@ export default function App() {
         locationsData,
         unitsData,
         movementsData,
-        financialData,
-        auditLogsData
+        auditLogsData,
+        usersData
       ] = await Promise.all([
         apiService.getStats(),
         apiService.getProducts(),
@@ -283,28 +559,31 @@ export default function App() {
         apiService.getLocations(),
         apiService.getUnits(),
         apiService.getMovements(),
-        apiService.getFinancialEntries(),
-        apiService.getAuditLogs()
+        apiService.getAuditLogs(),
+        apiService.getUsers()
       ]);
 
       setStats(statsData);
-      setProducts(productsData);
-      setOrders(ordersData);
-      setClients(clientsData);
-      setSuppliers(suppliersData);
-      setAssets(assetsData);
-      setCategories(categoriesData);
-      setLocations(locationsData);
-      setUnits(unitsData);
-      setMovements(movementsData);
-      setFinancialEntries(financialData);
-      setAuditLogs(auditLogsData);
+      setProducts(productsData || []);
+      setOrders(ordersData || []);
+      setClients(clientsData || []);
+      setSuppliers(suppliersData || []);
+      setAssets(assetsData || []);
+      setCategories(categoriesData || []);
+      setLocations(locationsData || []);
+      setUnits(unitsData || []);
+      setMovements(movementsData || []);
+      setAuditLogs(auditLogsData || []);
+      setSystemUsers(usersData || []);
     } catch (err) {
-      console.error('Error in fetchData:', err);
+      console.error('Error fetching data:', err);
+      setGlobalError('ERRO AO ATUALIZAR DADOS. TENTE NOVAMENTE.');
+    } finally {
+      setIsFetching(false);
     }
   };
 
-  const updateOrderStatus = async (id: number, status: OrderStatus) => {
+  const updateOrderStatus = async (id: string | number, status: OrderStatus) => {
     try {
       const order = orders.find(o => o.id === id);
       if (order) {
@@ -364,7 +643,7 @@ export default function App() {
     }
   };
 
-  const updateOrder = async (id: number, data: any) => {
+  const updateOrder = async (id: string | number, data: any) => {
     try {
       await apiService.updateOrder(id, data);
       fetchData();
@@ -373,7 +652,7 @@ export default function App() {
     }
   };
 
-  const deleteOrder = async (id: number) => {
+  const deleteOrder = async (id: string | number) => {
     showConfirm(
       'Excluir Ordem',
       'Tem certeza que deseja excluir esta ordem de produção? Esta ação não pode ser desfeita.',
@@ -407,8 +686,8 @@ export default function App() {
     }
   };
 
-  const updateClient = async (id: number, data: any) => {
-    const errors = validateEntityData(data);
+  const updateClient = async (id: string | number, data: any) => {
+    const errors = validateEntityData(data, false, id);
 
     if (Object.keys(errors).length > 0) {
       setClientFieldErrors(errors);
@@ -426,7 +705,7 @@ export default function App() {
     }
   };
 
-  const deleteClient = async (id: number) => {
+  const deleteClient = async (id: string | number) => {
     showConfirm(
       'Excluir Cliente',
       'Tem certeza que deseja excluir este cliente? Esta ação não pode ser desfeita.',
@@ -441,8 +720,8 @@ export default function App() {
     );
   };
 
-  const updateSupplierEntity = async (id: number, data: any) => {
-    const errors = validateEntityData(data, true);
+  const updateSupplierEntity = async (id: string | number, data: any) => {
+    const errors = validateEntityData(data, true, id);
 
     if (Object.keys(errors).length > 0) {
       setSupplierFieldErrors(errors);
@@ -460,7 +739,7 @@ export default function App() {
     }
   };
 
-  const deleteSupplier = async (id: number) => {
+  const deleteSupplier = async (id: string | number) => {
     showConfirm(
       'Excluir Fornecedor',
       'Tem certeza que deseja excluir este fornecedor? Esta ação não pode ser desfeita.',
@@ -476,24 +755,49 @@ export default function App() {
   };
 
   const addAsset = async (formData: FormData) => {
+    const data: any = {};
+    formData.forEach((value, key) => {
+      data[key] = value;
+    });
+
+    const errors = validateAssetData(data);
+    if (Object.keys(errors).length > 0) {
+      setAssetFieldErrors(errors);
+      return;
+    }
+
     try {
       await apiService.addAsset(formData);
       fetchData();
+      setIsAssetModalOpen(false);
     } catch (err) {
       console.error('Error adding asset:', err);
     }
   };
 
-  const updateAsset = async (id: number, formData: FormData) => {
+  const updateAsset = async (id: string | number, formData: FormData) => {
+    const data: any = {};
+    formData.forEach((value, key) => {
+      data[key] = value;
+    });
+
+    const errors = validateAssetData(data, id);
+    if (Object.keys(errors).length > 0) {
+      setAssetFieldErrors(errors);
+      return;
+    }
+
     try {
       await apiService.updateAsset(id, formData);
       fetchData();
+      setIsAssetModalOpen(false);
+      setEditingAsset(null);
     } catch (err) {
       console.error('Error updating asset:', err);
     }
   };
 
-  const handleDisposalAsset = async (id: number, data: any) => {
+  const handleDisposalAsset = async (id: string | number, data: any) => {
     try {
       await apiService.disposalAsset(id, data);
       fetchData();
@@ -502,7 +806,7 @@ export default function App() {
     }
   };
 
-  const deleteAsset = async (id: number) => {
+  const deleteAsset = async (id: string | number) => {
     showConfirm(
       'Excluir Patrimônio',
       'Tem certeza que deseja excluir este patrimônio? Esta ação não pode ser desfeita.',
@@ -545,7 +849,7 @@ export default function App() {
     }
   };
 
-  const updateCategory = async (id: number, name: string) => {
+  const updateCategory = async (id: string | number, name: string) => {
     try {
       await apiService.updateCategory(id, name);
       fetchData();
@@ -562,21 +866,13 @@ export default function App() {
       return;
     }
     try {
-      const payload = typeof data === 'string' ? { name: data, contact: '' } : data;
+      const payload = typeof data === 'string' ? { name: data, contact: '', tipo: 'PF' } : data;
       
-      // If it's a full object (from SupplierModal), validate it
-      if (typeof data !== 'string') {
-        const errors: Record<string, string> = {};
-        if (data.tipo === 'PF') {
-          if (!data.name) errors.name = 'NOME É OBRIGATÓRIO';
-          if (!data.cpf) errors.cpf = 'CPF É OBRIGATÓRIO';
-        } else {
-          if (!data.razao_social) errors.razao_social = 'RAZÃO SOCIAL É OBRIGATÓRIA';
-          if (!data.cnpj) errors.cnpj = 'CNPJ É OBRIGATÓRIO';
-        }
-
-        if (Object.keys(errors).length > 0) {
-          setSupplierFieldErrors(errors);
+      // If it's a simple string (from quick add), we still check uniqueness
+      if (typeof data === 'string') {
+        const isDuplicate = suppliers.some(s => s.name?.toUpperCase() === data.toUpperCase());
+        if (isDuplicate) {
+          setGlobalError('FORNECEDOR JÁ CADASTRADO COM ESTE NOME');
           return;
         }
       }
@@ -600,7 +896,7 @@ export default function App() {
     }
   };
 
-  const updateLocation = async (id: number, name: string) => {
+  const updateLocation = async (id: string | number, name: string) => {
     try {
       await apiService.updateLocation(id, name);
       fetchData();
@@ -632,7 +928,7 @@ export default function App() {
     }
   };
 
-  const handleUpdateProduct = async (id: number, formData: FormData) => {
+  const handleUpdateProduct = async (id: string | number, formData: FormData) => {
     try {
       await apiService.updateProduct(id, formData);
       fetchData();
@@ -642,7 +938,7 @@ export default function App() {
     }
   };
 
-  const handleDeleteProduct = async (id: number) => {
+  const handleDeleteProduct = async (id: string | number) => {
     showConfirm(
       'Excluir Produto',
       'Tem certeza que deseja excluir este produto? Esta ação não pode ser desfeita.',
@@ -659,6 +955,22 @@ export default function App() {
   };
 
   const renderContent = () => {
+    if (!userPermissions.includes(activeTab as any)) {
+      return (
+        <div className="flex flex-col items-center justify-center h-full text-zinc-400 space-y-4">
+          <ShieldCheck size={48} />
+          <p className="text-sm font-bold uppercase tracking-widest">Acesso Restrito</p>
+          <p className="text-xs uppercase">Você não tem permissão para acessar esta tela.</p>
+          <Button onClick={() => {
+            const firstAvailable = sidebarItems.find(item => userPermissions.includes(item.id as any));
+            if (firstAvailable) setActiveTab(firstAvailable.id as any);
+          }}>
+            Voltar para Início
+          </Button>
+        </div>
+      );
+    }
+
     switch (activeTab) {
       case 'dashboard': return (
         <Dashboard 
@@ -679,6 +991,7 @@ export default function App() {
           locations={locations}
           orders={orders}
           movements={movements}
+          isAdmin={isAdmin}
           onAddProduct={addProduct} 
           onUpdateProduct={handleUpdateProduct}
           onDeleteProduct={handleDeleteProduct}
@@ -728,6 +1041,7 @@ export default function App() {
           }}
           onItemClick={(order) => setSelectedOrderForDetail(order)}
           onError={setGlobalError}
+          isAdmin={isAdmin}
         />
       );
       case 'clients': return (
@@ -753,10 +1067,12 @@ export default function App() {
           }}
           addButtonLabel="NOVO CLIENTE"
           onItemClick={(client) => {
-            setEditingClient(client);
-            setIsClientModalOpen(true);
+            if (isAdmin) {
+              setEditingClient(client);
+              setIsClientModalOpen(true);
+            }
           }}
-          showActions={true}
+          showActions={isAdmin}
           onMenuClick={handleGenericMenuClick}
         />
       );
@@ -783,10 +1099,12 @@ export default function App() {
           }}
           addButtonLabel="NOVO FORNECEDOR"
           onItemClick={(supplier) => {
-            setEditingSupplier(supplier);
-            setIsSupplierModalOpen(true);
+            if (isAdmin) {
+              setEditingSupplier(supplier);
+              setIsSupplierModalOpen(true);
+            }
           }}
-          showActions={true}
+          showActions={isAdmin}
           onMenuClick={handleGenericMenuClick}
         />
       );
@@ -795,6 +1113,7 @@ export default function App() {
           assets={assets}
           categories={categories}
           hideTitle={true}
+          isAdmin={isAdmin}
           onAddAsset={addAsset}
           onUpdateAsset={updateAsset}
           onDeleteAsset={deleteAsset}
@@ -844,10 +1163,38 @@ export default function App() {
           ]} 
         />
       );
-      case 'settings': return <SettingsView />;
+      case 'settings': return (
+        <SettingsView 
+          users={systemUsers}
+          onAddUser={async (data) => {
+            await apiService.addUser(data);
+            fetchData();
+          }}
+          onUpdateUser={async (id, data) => {
+            await apiService.updateUser(id, data);
+            fetchData();
+          }}
+          onDeleteUser={async (id) => {
+            await apiService.deleteUser(id);
+            fetchData();
+          }}
+        />
+      );
       default: return <div className="flex items-center justify-center h-64 text-zinc-400">Em desenvolvimento...</div>;
     }
   };
+
+  if (!isAuthReady) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-zinc-50 dark:bg-zinc-950">
+        <Loader2 className="animate-spin text-zinc-900 dark:text-white" size={40} />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Login onLogin={() => fetchData()} />;
+  }
 
   return (
     <>
@@ -899,28 +1246,41 @@ export default function App() {
           </div>
 
           <nav className="flex-1 px-4 space-y-1 overflow-y-auto custom-scrollbar overflow-x-hidden">
-            <SidebarItem icon={LayoutDashboard} label="Painel" active={activeTab === 'dashboard'} isCollapsed={isSidebarCollapsed} onClick={() => { setActiveTab('dashboard'); setIsSidebarOpen(false); }} />
-            <SidebarItem icon={ClipboardList} label="Kanban" active={activeTab === 'kanban'} isCollapsed={isSidebarCollapsed} onClick={() => { setActiveTab('kanban'); setIsSidebarOpen(false); }} />
-            <SidebarItem icon={FileText} label="Ordem de Produção" active={activeTab === 'production'} isCollapsed={isSidebarCollapsed} onClick={() => { setActiveTab('production'); setIsSidebarOpen(false); }} />
-            <SidebarItem icon={Users} label="Clientes" active={activeTab === 'clients'} isCollapsed={isSidebarCollapsed} onClick={() => { setActiveTab('clients'); setIsSidebarOpen(false); }} />
-            <SidebarItem icon={Truck} label="Fornecedores" active={activeTab === 'suppliers'} isCollapsed={isSidebarCollapsed} onClick={() => { setActiveTab('suppliers'); setIsSidebarOpen(false); }} />
-            <SidebarItem icon={HardDrive} label="Patrimônios" active={activeTab === 'assets'} isCollapsed={isSidebarCollapsed} onClick={() => { setActiveTab('assets'); setIsSidebarOpen(false); }} />
-            <SidebarItem icon={Package} label="Estoque" active={activeTab === 'inventory'} isCollapsed={isSidebarCollapsed} onClick={() => { setActiveTab('inventory'); setIsSidebarOpen(false); }} />
-            <SidebarItem icon={DollarSign} label="Financeiro" active={activeTab === 'financial'} isCollapsed={isSidebarCollapsed} onClick={() => { setActiveTab('financial'); setIsSidebarOpen(false); }} />
-            <SidebarItem icon={RotateCcw} label="Histórico" active={activeTab === 'audit'} isCollapsed={isSidebarCollapsed} onClick={() => { setActiveTab('audit'); setIsSidebarOpen(false); }} />
-            <SidebarItem icon={Settings} label="Configurações" active={activeTab === 'settings'} isCollapsed={isSidebarCollapsed} onClick={() => { setActiveTab('settings'); setIsSidebarOpen(false); }} />
+            {visibleSidebarItems.map((item) => (
+              <SidebarItem 
+                key={item.id}
+                icon={item.icon} 
+                label={item.label} 
+                active={activeTab === item.id} 
+                isCollapsed={isSidebarCollapsed} 
+                onClick={() => { setActiveTab(item.id as any); setIsSidebarOpen(false); }} 
+              />
+            ))}
           </nav>
 
           <div className="p-4 border-t border-zinc-100 dark:border-zinc-800">
             <div className={cn("flex items-center gap-3 px-2 py-3 rounded-lg bg-zinc-50 dark:bg-zinc-900/50", isSidebarCollapsed && "justify-center px-0")}>
-              <div className="w-8 h-8 rounded-full bg-zinc-200 dark:bg-zinc-700 flex items-center justify-center text-xs font-bold text-zinc-600 dark:text-zinc-300 flex-shrink-0">
-                AD
-              </div>
+              {user?.photoURL ? (
+                <img src={user.photoURL} alt={user.displayName || ''} className="w-8 h-8 rounded-full flex-shrink-0" referrerPolicy="no-referrer" />
+              ) : (
+                <div className="w-8 h-8 rounded-full bg-zinc-200 dark:bg-zinc-700 flex items-center justify-center text-xs font-bold text-zinc-600 dark:text-zinc-300 flex-shrink-0">
+                  {user?.displayName?.charAt(0) || 'U'}
+                </div>
+              )}
               {!isSidebarCollapsed && (
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100 truncate uppercase">Administrador</p>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400 truncate">admin@pro.com</p>
+                  <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100 truncate uppercase">{user?.displayName || 'Usuário'}</p>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400 truncate">{user?.email}</p>
                 </div>
+              )}
+              {!isSidebarCollapsed && (
+                <button 
+                  onClick={() => signOut(auth)}
+                  className="p-1.5 text-zinc-400 hover:text-rose-500 transition-colors"
+                  title="Sair"
+                >
+                  <X size={18} />
+                </button>
               )}
             </div>
           </div>
@@ -962,10 +1322,17 @@ export default function App() {
             </h1>
           </div>
           <div className="flex items-center gap-4">
-            <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-zinc-100 dark:bg-zinc-800 rounded-full text-xs font-medium text-zinc-600 dark:text-zinc-400 uppercase">
-              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              Sistema Online
-            </div>
+            <button 
+              onClick={() => fetchData()}
+              disabled={isFetching}
+              className={cn(
+                "flex items-center gap-2 px-3 py-1.5 bg-zinc-100 dark:bg-zinc-800 rounded-full text-xs font-medium text-zinc-600 dark:text-zinc-400 uppercase transition-all hover:bg-zinc-200 dark:hover:bg-zinc-700",
+                isFetching && "opacity-50 cursor-not-allowed"
+              )}
+            >
+              <RotateCcw className={cn("w-3 h-3", isFetching && "animate-spin")} />
+              {isFetching ? 'Atualizando...' : 'Atualizar Dados'}
+            </button>
           </div>
         </header>
 
@@ -999,12 +1366,14 @@ export default function App() {
         }}
         editingOrder={editingOrder}
         clients={clients}
+        orders={orders}
       />
 
       <OrderDetailModal 
         isOpen={!!selectedOrderForDetail}
         onClose={() => setSelectedOrderForDetail(null)}
         order={selectedOrderForDetail}
+        isAdmin={isAdmin}
         onEdit={(order) => {
           setEditingOrder(order);
           setIsOrderModalOpen(true);
@@ -1065,10 +1434,11 @@ export default function App() {
         }}
         asset={editingAsset}
         categories={categories}
+        fieldErrors={assetFieldErrors}
       />
 
       <AnimatePresence>
-        {activeGenericMenuId && genericMenuPosition && (
+        {isAdmin && activeGenericMenuId && genericMenuPosition && (
           <>
             <div className="fixed inset-0 z-[150]" onClick={() => setActiveGenericMenuId(null)} />
             <motion.div 

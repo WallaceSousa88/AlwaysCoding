@@ -22,7 +22,7 @@ interface GenericListProps {
   onAdd?: () => void;
   addButtonLabel?: string;
   onItemClick?: (item: any) => void;
-  onMenuClick?: (e: React.MouseEvent, id: number) => void;
+  onMenuClick?: (e: React.MouseEvent, id: string | number) => void;
 }
 
 export const GenericList = ({ 

@@ -8,7 +8,7 @@ interface AssetModalProps {
   onClose: () => void;
   onSave: (formData: FormData) => void;
   asset?: Asset | null;
-  categories: { id: number, name: string }[];
+  categories: { id: string | number, name: string }[];
   fieldErrors?: Record<string, string>;
 }
 
@@ -224,7 +224,7 @@ export const AssetModal = ({ isOpen, onClose, onSave, asset, categories, fieldEr
 interface AssetDisposalModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: (data: { disposal_type: string, disposal_date: string, disposal_value: number, asset_id?: number }) => void;
+  onConfirm: (data: { disposal_type: string, disposal_date: string, disposal_value: number, asset_id?: string | number }) => void;
   asset: Asset | null;
   assets?: Asset[];
   fieldErrors?: Record<string, string>;
@@ -236,7 +236,7 @@ export const AssetDisposalModal = ({ isOpen, onClose, onConfirm, asset, assets =
   const [disposalDate, setDisposalDate] = useState(new Date().toISOString().split('T')[0]);
   const [calculatedValue, setCalculatedValue] = useState(0);
 
-  const currentAsset = asset || assets.find(a => a.id === parseInt(selectedAssetId)) || null;
+  const currentAsset = asset || assets.find(a => a.id === selectedAssetId) || null;
 
   useEffect(() => {
     if (currentAsset && isOpen) {

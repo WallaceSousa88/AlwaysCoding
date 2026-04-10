@@ -9,8 +9,9 @@ interface OrderDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
   order: Order | null;
+  isAdmin?: boolean;
   onEdit: (order: Order) => void;
-  onDelete: (id: number) => void;
+  onDelete: (id: string | number) => void;
   onUpdate?: () => void;
 }
 
@@ -18,6 +19,7 @@ export const OrderDetailModal = ({
   isOpen, 
   onClose, 
   order, 
+  isAdmin = false,
   onEdit,
   onDelete,
   onUpdate
@@ -139,24 +141,26 @@ export const OrderDetailModal = ({
       <Modal isOpen={isOpen} onClose={onClose} title="Checklist de Produção">
         <div className="space-y-8">
           {/* Header Actions */}
-          <div className="flex items-center justify-end gap-2 -mt-4 mb-4">
-            <Button 
-              variant="ghost" 
-              onClick={() => onEdit(order)}
-              className="h-9 w-9 p-0 flex items-center justify-center"
-              title="Editar"
-            >
-              <Edit size={18} />
-            </Button>
-            <Button 
-              variant="ghost" 
-              onClick={handleDelete}
-              className="h-9 w-9 p-0 flex items-center justify-center text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-500/10"
-              title="Excluir"
-            >
-              <Trash2 size={18} />
-            </Button>
-          </div>
+          {isAdmin && (
+            <div className="flex items-center justify-end gap-2 -mt-4 mb-4">
+              <Button 
+                variant="ghost" 
+                onClick={() => onEdit(order)}
+                className="h-9 w-9 p-0 flex items-center justify-center"
+                title="Editar"
+              >
+                <Edit size={18} />
+              </Button>
+              <Button 
+                variant="ghost" 
+                onClick={handleDelete}
+                className="h-9 w-9 p-0 flex items-center justify-center text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-500/10"
+                title="Excluir"
+              >
+                <Trash2 size={18} />
+              </Button>
+            </div>
+          )}
 
           {/* Title & Status */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">

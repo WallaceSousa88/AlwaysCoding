@@ -11,6 +11,7 @@ interface OrderModalProps {
   onSubmit: (data: any) => void;
   editingOrder?: Order | null;
   clients: Client[];
+  orders: Order[];
 }
 
 const CUTS_FOLDS_OPTIONS = ['Chaparia', 'Gabarito Instalação', 'Metalon', 'Plotter', 'Dobra', 'Gabarito Produção', 'Router ACM', 'Acrílico', 'Corte Plasma', 'Laser Acrílico', 'Router MDF'];
@@ -27,7 +28,8 @@ export const OrderModal = ({
   onClose, 
   onSubmit, 
   editingOrder, 
-  clients 
+  clients,
+  orders
 }: OrderModalProps) => {
   const [step, setStep] = useState(1);
   const [error, setError] = useState<string | null>(null);
@@ -181,6 +183,15 @@ export const OrderModal = ({
       if (!formData.title) {
         newFieldErrors.title = 'Por favor, informe o título da ordem.';
         hasError = true;
+      } else {
+        const isDuplicate = orders.some(o => 
+          o.id !== editingOrder?.id && 
+          o.title.toUpperCase() === formData.title.toUpperCase()
+        );
+        if (isDuplicate) {
+          newFieldErrors.title = 'TÍTULO JÁ CADASTRADO EM OUTRA ORDEM';
+          hasError = true;
+        }
       }
       if (!formData.client_id) {
         newFieldErrors.client_id = 'Por favor, selecione um cliente.';

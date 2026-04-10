@@ -23,18 +23,20 @@ import { exportGenericToCSV, exportGenericToPDF } from '../services/exportServic
 
 interface AssetsProps {
   assets: Asset[];
-  categories: {id: number, name: string}[];
+  categories: {id: string | number, name: string}[];
   hideTitle?: boolean;
+  isAdmin?: boolean;
   onAddAsset: (formData: FormData) => Promise<void>;
-  onUpdateAsset: (id: number, formData: FormData) => Promise<void>;
-  onDeleteAsset: (id: number) => Promise<void>;
-  onDisposalAsset: (id: number, data: any) => Promise<void>;
+  onUpdateAsset: (id: string | number, formData: FormData) => Promise<void>;
+  onDeleteAsset: (id: string | number) => Promise<void>;
+  onDisposalAsset: (id: string | number, data: any) => Promise<void>;
 }
 
 export const Assets = ({ 
   assets, 
   categories,
   hideTitle = false,
+  isAdmin = false,
   onAddAsset, 
   onUpdateAsset,
   onDeleteAsset,
@@ -246,9 +248,15 @@ export const Assets = ({
             visibleColumns={visibleColumns}
             requestSort={requestSort}
             getSortIcon={getSortIcon}
-            onAssetClick={(asset) => { setEditingAsset(asset); setIsModalOpen(true); }}
+            onAssetClick={(asset) => { 
+              if (isAdmin) {
+                setEditingAsset(asset); 
+                setIsModalOpen(true); 
+              }
+            }}
             onEdit={(asset) => { setEditingAsset(asset); setIsModalOpen(true); }}
             onDelete={onDeleteAsset}
+            isAdmin={isAdmin}
           />
         </div>
       </Card>
@@ -262,7 +270,29 @@ export const Assets = ({
         }}
         onSave={async (formData) => {
           const errors: Record<string, string> = {};
-          if (!formData.get('description')) errors.description = 'DESCRIÇÃO É OBRIGATÓRIA';
+          const description = formData.get('description') as string;
+          const assetNumber = formData.get('asset_number') as string;
+
+          if (!description) {
+            errors.description = 'DESCRIÇÃO É OBRIGATÓRIA';
+          } else {
+            const isDuplicate = assets.some(a => 
+              a.id !== editingAsset?.id && 
+              a.description.toUpperCase() === description.toUpperCase()
+            );
+            if (isDuplicate) errors.description = 'PATRIMÔNIO JÁ CADASTRADO COM ESTA DESCRIÇÃO';
+          }
+
+          if (!assetNumber) {
+            errors.asset_number = 'Nº PATRIMÔNIO É OBRIGATÓRIO';
+          } else {
+            const isDuplicate = assets.some(a => 
+              a.id !== editingAsset?.id && 
+              a.asset_number?.toUpperCase() === assetNumber.toUpperCase()
+            );
+            if (isDuplicate) errors.asset_number = 'Nº PATRIMÔNIO JÁ CADASTRADO';
+          }
+
           if (!formData.get('purchase_value')) errors.purchase_value = 'VALOR DE COMPRA É OBRIGATÓRIO';
           if (!formData.get('depreciation_percentage')) errors.depreciation_percentage = 'PERCENTUAL É OBRIGATÓRIO';
 

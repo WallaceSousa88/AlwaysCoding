@@ -11,7 +11,7 @@ interface InventoryFiltersProps {
   setMovementTypeFilter: (val: 'ALL' | 'IN' | 'OUT') => void;
   movementLocationFilter: string;
   setMovementLocationFilter: (val: string) => void;
-  locations: { id: number; name: string }[];
+  locations: { id: string | number; name: string }[];
   startDate: string;
   setStartDate: (val: string) => void;
   endDate: string;

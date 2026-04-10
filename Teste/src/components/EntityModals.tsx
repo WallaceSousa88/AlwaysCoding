@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { X, AlertTriangle, User, CreditCard, Calendar, Briefcase, FileText, Phone, Mail, MapPin, Globe } from 'lucide-react';
+import { X, AlertTriangle, User, CreditCard, Calendar, Briefcase, FileText, Phone, Mail, MapPin, Globe, Search, Loader2 } from 'lucide-react';
 import { Modal, Input, Button } from './Common';
 import { Client, Supplier, Asset } from '../types';
 import { maskCPF, maskCNPJ, maskPhone, maskCEP } from '../lib/masks';
+import { fetchAddressByCEP } from '../services/cepService';
 
 interface ClientModalProps {
   isOpen: boolean;
@@ -34,6 +35,27 @@ export const ClientModal = ({ isOpen, onClose, onSubmit, editingClient, fieldErr
     telefone2: '',
     email: ''
   });
+
+  const [isSearchingCEP, setIsSearchingCEP] = useState(false);
+
+  const handleCEPSearch = async () => {
+    if (!formData.cep || formData.cep.replace(/\D/g, '').length !== 8) return;
+
+    setIsSearchingCEP(true);
+    try {
+      const address = await fetchAddressByCEP(formData.cep);
+      if (address) {
+        setFormData(prev => ({
+          ...prev,
+          endereco: address.logradouro.toUpperCase(),
+          bairro: address.bairro.toUpperCase(),
+          cidade: address.localidade.toUpperCase()
+        }));
+      }
+    } finally {
+      setIsSearchingCEP(false);
+    }
+  };
 
   useEffect(() => {
     if (editingClient) {
@@ -68,6 +90,30 @@ export const ClientModal = ({ isOpen, onClose, onSubmit, editingClient, fieldErr
     onSubmit(formData);
   };
 
+  const handleTypeChange = (tipo: 'PF' | 'PJ') => {
+    setFormData({
+      tipo_cliente: tipo,
+      name: '',
+      cpf: '',
+      rg: '',
+      data_nascimento: '',
+      razao_social: '',
+      cnpj: '',
+      nome_fantasia: '',
+      ie: '',
+      im: '',
+      contato_responsavel: '',
+      endereco: '',
+      complemento: '',
+      bairro: '',
+      cep: '',
+      cidade: '',
+      telefone1: '',
+      telefone2: '',
+      email: ''
+    });
+  };
+
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={editingClient ? 'EDITAR CLIENTE' : 'NOVO CLIENTE'} noPadding>
       <form onSubmit={handleSubmit} noValidate className="p-6 space-y-4 flex-1 overflow-y-auto custom-scrollbar">
@@ -78,7 +124,7 @@ export const ClientModal = ({ isOpen, onClose, onSubmit, editingClient, fieldErr
               name="tipo_cliente" 
               value="PF" 
               checked={formData.tipo_cliente === 'PF'} 
-              onChange={() => setFormData({ ...formData, tipo_cliente: 'PF' })}
+              onChange={() => handleTypeChange('PF')}
               className="w-4 h-4 text-zinc-900 focus:ring-zinc-900 border-zinc-300"
             />
             <span className="text-sm font-bold text-zinc-700 dark:text-zinc-300 group-hover:text-zinc-900 dark:group-hover:text-zinc-100 transition-colors uppercase">PESSOA FÍSICA</span>
@@ -89,7 +135,7 @@ export const ClientModal = ({ isOpen, onClose, onSubmit, editingClient, fieldErr
               name="tipo_cliente" 
               value="PJ" 
               checked={formData.tipo_cliente === 'PJ'} 
-              onChange={() => setFormData({ ...formData, tipo_cliente: 'PJ' })}
+              onChange={() => handleTypeChange('PJ')}
               className="w-4 h-4 text-zinc-900 focus:ring-zinc-900 border-zinc-300"
             />
             <span className="text-sm font-bold text-zinc-700 dark:text-zinc-300 group-hover:text-zinc-900 dark:group-hover:text-zinc-100 transition-colors uppercase">PESSOA JURÍDICA</span>
@@ -129,6 +175,14 @@ export const ClientModal = ({ isOpen, onClose, onSubmit, editingClient, fieldErr
                 type="date" 
                 value={formData.data_nascimento} 
                 onChange={(e: any) => setFormData({ ...formData, data_nascimento: e.target.value })}
+              />
+              <Input 
+                label="EMAIL" 
+                icon={<Mail size={18} />}
+                type="email" 
+                value={formData.email} 
+                onChange={(e: any) => setFormData({ ...formData, email: e.target.value.toLowerCase() })}
+                error={fieldErrors.email}
               />
             </>
           ) : (
@@ -177,8 +231,42 @@ export const ClientModal = ({ isOpen, onClose, onSubmit, editingClient, fieldErr
                   onChange={(e: any) => setFormData({ ...formData, contato_responsavel: e.target.value.toUpperCase() })}
                 />
               </div>
+              <div className="md:col-span-2">
+                <Input 
+                  label="EMAIL" 
+                  icon={<Mail size={18} />}
+                  type="email" 
+                  value={formData.email} 
+                  onChange={(e: any) => setFormData({ ...formData, email: e.target.value.toLowerCase() })}
+                  error={fieldErrors.email}
+                />
+              </div>
             </>
           )}
+
+          <div className="flex items-end gap-2">
+            <Input 
+              label="CEP" 
+              icon={<MapPin size={18} />}
+              value={formData.cep} 
+              onChange={(e: any) => setFormData({ ...formData, cep: maskCEP(e.target.value) })}
+            />
+            <button
+              type="button"
+              onClick={handleCEPSearch}
+              disabled={isSearchingCEP || !formData.cep || formData.cep.replace(/\D/g, '').length !== 8}
+              className="mb-0.5 p-2.5 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 rounded-xl hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Buscar CEP"
+            >
+              {isSearchingCEP ? <Loader2 size={18} className="animate-spin" /> : <Search size={18} />}
+            </button>
+          </div>
+          <Input 
+            label="CIDADE" 
+            icon={<MapPin size={18} />}
+            value={formData.cidade} 
+            onChange={(e: any) => setFormData({ ...formData, cidade: e.target.value.toUpperCase() })}
+          />
 
           <div className="md:col-span-2 pt-2 border-t border-zinc-100 dark:border-zinc-800">
             <Input 
@@ -202,18 +290,6 @@ export const ClientModal = ({ isOpen, onClose, onSubmit, editingClient, fieldErr
             onChange={(e: any) => setFormData({ ...formData, bairro: e.target.value.toUpperCase() })}
           />
           <Input 
-            label="CEP" 
-            icon={<MapPin size={18} />}
-            value={formData.cep} 
-            onChange={(e: any) => setFormData({ ...formData, cep: maskCEP(e.target.value) })}
-          />
-          <Input 
-            label="CIDADE" 
-            icon={<MapPin size={18} />}
-            value={formData.cidade} 
-            onChange={(e: any) => setFormData({ ...formData, cidade: e.target.value.toUpperCase() })}
-          />
-          <Input 
             label="TELEFONE 1" 
             icon={<Phone size={18} />}
             value={formData.telefone1} 
@@ -226,16 +302,6 @@ export const ClientModal = ({ isOpen, onClose, onSubmit, editingClient, fieldErr
             value={formData.telefone2} 
             onChange={(e: any) => setFormData({ ...formData, telefone2: maskPhone(e.target.value) })}
           />
-          <div className="md:col-span-2">
-            <Input 
-              label="EMAIL" 
-              icon={<Mail size={18} />}
-              type="email" 
-              value={formData.email} 
-              onChange={(e: any) => setFormData({ ...formData, email: e.target.value.toLowerCase() })}
-              error={fieldErrors.email}
-            />
-          </div>
         </div>
 
         <div className="flex justify-end gap-3 pt-6 border-t border-zinc-100 dark:border-zinc-800">
@@ -283,6 +349,27 @@ export const SupplierModal = ({ isOpen, onClose, onSubmit, editingSupplier, fiel
     website: ''
   });
 
+  const [isSearchingCEP, setIsSearchingCEP] = useState(false);
+
+  const handleCEPSearch = async () => {
+    if (!formData.cep || formData.cep.replace(/\D/g, '').length !== 8) return;
+
+    setIsSearchingCEP(true);
+    try {
+      const address = await fetchAddressByCEP(formData.cep);
+      if (address) {
+        setFormData(prev => ({
+          ...prev,
+          endereco: address.logradouro.toUpperCase(),
+          bairro: address.bairro.toUpperCase(),
+          cidade: address.localidade.toUpperCase()
+        }));
+      }
+    } finally {
+      setIsSearchingCEP(false);
+    }
+  };
+
   useEffect(() => {
     if (editingSupplier) {
       setFormData(editingSupplier);
@@ -317,6 +404,31 @@ export const SupplierModal = ({ isOpen, onClose, onSubmit, editingSupplier, fiel
     onSubmit(formData);
   };
 
+  const handleTypeChange = (tipo: 'PF' | 'PJ') => {
+    setFormData({
+      tipo: tipo,
+      name: '',
+      cpf: '',
+      rg: '',
+      data_nascimento: '',
+      razao_social: '',
+      cnpj: '',
+      nome_fantasia: '',
+      ie: '',
+      im: '',
+      contato_responsavel: '',
+      endereco: '',
+      complemento: '',
+      bairro: '',
+      cep: '',
+      cidade: '',
+      telefone1: '',
+      telefone2: '',
+      email: '',
+      website: ''
+    });
+  };
+
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={editingSupplier ? 'EDITAR FORNECEDOR' : 'NOVO FORNECEDOR'} noPadding>
       <form onSubmit={handleSubmit} noValidate className="p-6 space-y-4 flex-1 overflow-y-auto custom-scrollbar">
@@ -327,7 +439,7 @@ export const SupplierModal = ({ isOpen, onClose, onSubmit, editingSupplier, fiel
               name="tipo" 
               value="PF" 
               checked={formData.tipo === 'PF'} 
-              onChange={() => setFormData({ ...formData, tipo: 'PF' })}
+              onChange={() => handleTypeChange('PF')}
               className="w-4 h-4 text-zinc-900 focus:ring-zinc-900 border-zinc-300"
             />
             <span className="text-sm font-bold text-zinc-700 dark:text-zinc-300 group-hover:text-zinc-900 dark:group-hover:text-zinc-100 transition-colors uppercase">PESSOA FÍSICA</span>
@@ -338,7 +450,7 @@ export const SupplierModal = ({ isOpen, onClose, onSubmit, editingSupplier, fiel
               name="tipo" 
               value="PJ" 
               checked={formData.tipo === 'PJ'} 
-              onChange={() => setFormData({ ...formData, tipo: 'PJ' })}
+              onChange={() => handleTypeChange('PJ')}
               className="w-4 h-4 text-zinc-900 focus:ring-zinc-900 border-zinc-300"
             />
             <span className="text-sm font-bold text-zinc-700 dark:text-zinc-300 group-hover:text-zinc-900 dark:group-hover:text-zinc-100 transition-colors uppercase">PESSOA JURÍDICA</span>
@@ -429,11 +541,34 @@ export const SupplierModal = ({ isOpen, onClose, onSubmit, editingSupplier, fiel
             </>
           )}
 
+          <div className="flex items-end gap-2">
+            <Input 
+              label="CEP" 
+              icon={<MapPin size={18} />}
+              value={formData.cep} 
+              onChange={(e: any) => setFormData({ ...formData, cep: maskCEP(e.target.value) })}
+            />
+            <button
+              type="button"
+              onClick={handleCEPSearch}
+              disabled={isSearchingCEP || !formData.cep || formData.cep.replace(/\D/g, '').length !== 8}
+              className="mb-0.5 p-2.5 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 rounded-xl hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Buscar CEP"
+            >
+              {isSearchingCEP ? <Loader2 size={18} className="animate-spin" /> : <Search size={18} />}
+            </button>
+          </div>
+          <Input 
+            label="CIDADE" 
+            icon={<MapPin size={18} />}
+            value={formData.cidade} 
+            onChange={(e: any) => setFormData({ ...formData, cidade: e.target.value.toUpperCase() })}
+          />
+
           <div className="md:col-span-2 pt-2 border-t border-zinc-100 dark:border-zinc-800">
             <Input 
               label="ENDEREÇO" 
               icon={<MapPin size={18} />}
-              required
               value={formData.endereco} 
               onChange={(e: any) => setFormData({ ...formData, endereco: e.target.value.toUpperCase() })}
               error={fieldErrors.endereco}
@@ -452,21 +587,8 @@ export const SupplierModal = ({ isOpen, onClose, onSubmit, editingSupplier, fiel
             onChange={(e: any) => setFormData({ ...formData, bairro: e.target.value.toUpperCase() })}
           />
           <Input 
-            label="CEP" 
-            icon={<MapPin size={18} />}
-            value={formData.cep} 
-            onChange={(e: any) => setFormData({ ...formData, cep: maskCEP(e.target.value) })}
-          />
-          <Input 
-            label="CIDADE" 
-            icon={<MapPin size={18} />}
-            value={formData.cidade} 
-            onChange={(e: any) => setFormData({ ...formData, cidade: e.target.value.toUpperCase() })}
-          />
-          <Input 
             label="TELEFONE 1" 
             icon={<Phone size={18} />}
-            required
             value={formData.telefone1} 
             onChange={(e: any) => setFormData({ ...formData, telefone1: maskPhone(e.target.value) })}
             error={fieldErrors.telefone1}
@@ -480,7 +602,6 @@ export const SupplierModal = ({ isOpen, onClose, onSubmit, editingSupplier, fiel
           <Input 
             label="EMAIL" 
             icon={<Mail size={18} />}
-            required
             type="email" 
             value={formData.email} 
             onChange={(e: any) => setFormData({ ...formData, email: e.target.value.toLowerCase() })}

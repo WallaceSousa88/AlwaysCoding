@@ -2,13 +2,13 @@ import React from 'react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, ChevronDown, AlertTriangle, Search } from 'lucide-react';
+import { X, ChevronDown, AlertTriangle, Search, Loader2 } from 'lucide-react';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export const SidebarItem = ({ icon: Icon, label, active, onClick, isCollapsed }: { icon: any, label: string, active: boolean, onClick: () => void, isCollapsed?: boolean }) => (
+export const SidebarItem: React.FC<{ icon: any, label: string, active: boolean, onClick: () => void, isCollapsed?: boolean }> = ({ icon: Icon, label, active, onClick, isCollapsed }) => (
   <button
     onClick={onClick}
     className={cn(
@@ -265,7 +265,7 @@ export const SearchBar = ({ value, onChange, placeholder = "BUSCAR...", classNam
   </div>
 );
 
-export const Button = ({ children, variant = 'primary', className, ...props }: any) => {
+export const Button = ({ children, variant = 'primary', className, isLoading, ...props }: any) => {
   const variants = {
     primary: "bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200",
     secondary: "bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700",
@@ -277,12 +277,14 @@ export const Button = ({ children, variant = 'primary', className, ...props }: a
   return (
     <button 
       className={cn(
-        "px-4 py-2.5 rounded-xl text-sm font-bold transition-all active:scale-95 disabled:opacity-50 disabled:pointer-events-none uppercase tracking-wider",
+        "px-4 py-2.5 rounded-xl text-sm font-bold transition-all active:scale-95 disabled:opacity-50 disabled:pointer-events-none uppercase tracking-wider flex items-center justify-center gap-2",
         variants[variant as keyof typeof variants],
         className
       )}
+      disabled={props.disabled || isLoading}
       {...props}
     >
+      {isLoading && <Loader2 className="animate-spin" size={16} />}
       {children}
     </button>
   );

@@ -7,3 +7,4 @@ coverage/
 .env*
 !.env.example
 readme.md
+firebase-applet-config.json

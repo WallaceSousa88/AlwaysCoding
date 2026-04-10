@@ -7,19 +7,20 @@ import { cn, SearchBar } from './Common';
 
 interface KanbanProps {
   orders: Order[];
-  onUpdateStatus: (id: number, status: OrderStatus) => void;
+  onUpdateStatus: (id: string | number, status: OrderStatus) => void;
   onEdit: (order: Order) => void;
-  onDelete: (id: number) => void;
+  onDelete: (id: string | number) => void;
   onAdd: () => void;
   onItemClick: (order: Order) => void;
   onError?: (message: string) => void;
+  isAdmin?: boolean;
 }
 
-export const Kanban = ({ orders, onUpdateStatus, onEdit, onDelete, onAdd, onItemClick, onError }: KanbanProps) => {
+export const Kanban = ({ orders, onUpdateStatus, onEdit, onDelete, onAdd, onItemClick, onError, isAdmin = false }: KanbanProps) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [draggedOrderId, setDraggedOrderId] = useState<number | null>(null);
+  const [draggedOrderId, setDraggedOrderId] = useState<string | number | null>(null);
   const [draggedOverColumn, setDraggedOverColumn] = useState<string | null>(null);
-  const [activeMenuId, setActiveMenuId] = useState<number | null>(null);
+  const [activeMenuId, setActiveMenuId] = useState<string | number | null>(null);
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
 
   const getOrderProgress = (order: Order) => {
@@ -51,7 +52,7 @@ export const Kanban = ({ orders, onUpdateStatus, onEdit, onDelete, onAdd, onItem
     }
   };
 
-  const validateStatusChange = (orderId: number, newStatus: OrderStatus) => {
+  const validateStatusChange = (orderId: string | number, newStatus: OrderStatus) => {
     const order = orders.find(o => o.id === orderId);
     if (!order) return false;
 
@@ -78,7 +79,7 @@ export const Kanban = ({ orders, onUpdateStatus, onEdit, onDelete, onAdd, onItem
     );
   }, [orders, searchTerm]);
 
-  const handleDragStart = (e: React.DragEvent, orderId: number) => {
+  const handleDragStart = (e: React.DragEvent, orderId: string | number) => {
     setDraggedOrderId(orderId);
     e.dataTransfer.setData('orderId', orderId.toString());
     e.dataTransfer.effectAllowed = 'move';
@@ -97,8 +98,8 @@ export const Kanban = ({ orders, onUpdateStatus, onEdit, onDelete, onAdd, onItem
     e.preventDefault();
     setDraggedOverColumn(null);
     
-    const orderId = draggedOrderId || parseInt(e.dataTransfer.getData('orderId'));
-    if (orderId && !isNaN(orderId)) {
+    const orderId = draggedOrderId || e.dataTransfer.getData('orderId');
+    if (orderId) {
       if (validateStatusChange(orderId, status)) {
         onUpdateStatus(orderId, status);
       }
@@ -106,7 +107,7 @@ export const Kanban = ({ orders, onUpdateStatus, onEdit, onDelete, onAdd, onItem
     setDraggedOrderId(null);
   };
 
-  const openMenu = (e: React.MouseEvent, orderId: number) => {
+  const openMenu = (e: React.MouseEvent, orderId: string | number) => {
     e.preventDefault();
     e.stopPropagation();
     const rect = e.currentTarget.getBoundingClientRect();
@@ -183,12 +184,14 @@ export const Kanban = ({ orders, onUpdateStatus, onEdit, onDelete, onAdd, onItem
                 >
                 <div className="flex justify-between items-start mb-2">
                   <span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase">#{order.id}</span>
-                  <button 
-                    onClick={(e) => openMenu(e, order.id)}
-                    className="text-zinc-300 hover:text-zinc-600 dark:text-zinc-600 dark:hover:text-zinc-300"
-                  >
-                    <MoreVertical size={14} />
-                  </button>
+                  {isAdmin && (
+                    <button 
+                      onClick={(e) => openMenu(e, order.id)}
+                      className="text-zinc-300 hover:text-zinc-600 dark:text-zinc-600 dark:hover:text-zinc-300"
+                    >
+                      <MoreVertical size={14} />
+                    </button>
+                  )}
                 </div>
                 <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 mb-1 uppercase">{order.title}</h4>
                 <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-3 line-clamp-2 uppercase">{order.description || 'SEM DESCRIÇÃO'}</p>
@@ -248,7 +251,7 @@ export const Kanban = ({ orders, onUpdateStatus, onEdit, onDelete, onAdd, onItem
       </div>
 
       <AnimatePresence>
-        {activeMenuId && (
+        {isAdmin && activeMenuId && (
           <>
             <div 
               className="fixed inset-0 z-[150]" 

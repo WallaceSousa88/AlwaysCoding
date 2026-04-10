@@ -1,0 +1,191 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "System user",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "role": { "type": "string" }
+      },
+      "required": ["name", "email", "role"]
+    },
+    "Product": {
+      "title": "Product",
+      "description": "Inventory product",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "category": { "type": "string" },
+        "unit": { "type": "string" },
+        "cost_price": { "type": "number" },
+        "quantity": { "type": "number" },
+        "min_quantity": { "type": "number" },
+        "photo": { "type": "string" }
+      },
+      "required": ["name"]
+    },
+    "Client": {
+      "title": "Client",
+      "description": "Customer information",
+      "type": "object",
+      "properties": {
+        "tipo_cliente": { "type": "string", "enum": ["PF", "PJ"] },
+        "name": { "type": "string" },
+        "cpf": { "type": "string" },
+        "rg": { "type": "string" },
+        "data_nascimento": { "type": "string" },
+        "razao_social": { "type": "string" },
+        "cnpj": { "type": "string" },
+        "nome_fantasia": { "type": "string" },
+        "ie": { "type": "string" },
+        "im": { "type": "string" },
+        "contato_responsavel": { "type": "string" },
+        "endereco": { "type": "string" },
+        "complemento": { "type": "string" },
+        "bairro": { "type": "string" },
+        "cep": { "type": "string" },
+        "cidade": { "type": "string" },
+        "telefone1": { "type": "string" },
+        "telefone2": { "type": "string" },
+        "email": { "type": "string", "format": "email" }
+      },
+      "required": ["name"]
+    },
+    "Supplier": {
+      "title": "Supplier",
+      "description": "Supplier information",
+      "type": "object",
+      "properties": {
+        "tipo": { "type": "string", "enum": ["PF", "PJ"] },
+        "name": { "type": "string" },
+        "cpf": { "type": "string" },
+        "rg": { "type": "string" },
+        "data_nascimento": { "type": "string" },
+        "razao_social": { "type": "string" },
+        "cnpj": { "type": "string" },
+        "nome_fantasia": { "type": "string" },
+        "ie": { "type": "string" },
+        "im": { "type": "string" },
+        "contato_responsavel": { "type": "string" },
+        "endereco": { "type": "string" },
+        "complemento": { "type": "string" },
+        "bairro": { "type": "string" },
+        "cep": { "type": "string" },
+        "cidade": { "type": "string" },
+        "telefone1": { "type": "string" },
+        "telefone2": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "website": { "type": "string" }
+      }
+    },
+    "Asset": {
+      "title": "Asset",
+      "description": "Company asset",
+      "type": "object",
+      "properties": {
+        "description": { "type": "string" },
+        "asset_number": { "type": "string" },
+        "category": { "type": "string" },
+        "purchase_date": { "type": "string" },
+        "purchase_value": { "type": "number" },
+        "depreciation_type": { "type": "string" },
+        "depreciation_percentage": { "type": "number" },
+        "photo": { "type": "string" },
+        "status": { "type": "string" },
+        "disposal_type": { "type": "string" },
+        "disposal_date": { "type": "string" },
+        "disposal_value": { "type": "number" }
+      },
+      "required": ["description"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Production order",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "status": { "type": "string" },
+        "client_id": { "type": "string" },
+        "details": { "type": "string" },
+        "created_at": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title"]
+    },
+    "Movement": {
+      "title": "Movement",
+      "description": "Inventory movement",
+      "type": "object",
+      "properties": {
+        "product_id": { "type": "string" },
+        "type": { "type": "string", "enum": ["IN", "OUT"] },
+        "quantity": { "type": "number" },
+        "date": { "type": "string", "format": "date-time" },
+        "supplier_id": { "type": "string" },
+        "doc_number": { "type": "string" },
+        "issue_date": { "type": "string" },
+        "location": { "type": "string" },
+        "unit_price": { "type": "number" },
+        "reason": { "type": "string" },
+        "destination": { "type": "string" },
+        "xml": { "type": "string" },
+        "invoice_pdf": { "type": "string" }
+      },
+      "required": ["product_id", "type", "quantity"]
+    },
+    "Category": {
+      "title": "Category",
+      "description": "Product category",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" }
+      },
+      "required": ["name"]
+    },
+    "Location": {
+      "title": "Location",
+      "description": "Storage location",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" }
+      },
+      "required": ["name"]
+    },
+    "Unit": {
+      "title": "Unit",
+      "description": "Measurement unit",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" }
+      },
+      "required": ["name"]
+    },
+    "AuditLog": {
+      "title": "AuditLog",
+      "description": "System audit log",
+      "type": "object",
+      "properties": {
+        "user_id": { "type": "string" },
+        "action": { "type": "string" },
+        "details": { "type": "string" },
+        "created_at": { "type": "string", "format": "date-time" }
+      },
+      "required": ["action", "created_at"]
+    }
+  },
+  "firestore": {
+    "/users": { "schema": "User", "description": "System users" },
+    "/products": { "schema": "Product", "description": "Inventory products" },
+    "/clients": { "schema": "Client", "description": "Customers" },
+    "/suppliers": { "schema": "Supplier", "description": "Suppliers" },
+    "/assets": { "schema": "Asset", "description": "Company assets" },
+    "/orders": { "schema": "Order", "description": "Production orders" },
+    "/movements": { "schema": "Movement", "description": "Stock movements" },
+    "/categories": { "schema": "Category", "description": "Product categories" },
+    "/locations": { "schema": "Location", "description": "Storage locations" },
+    "/units": { "schema": "Unit", "description": "Measurement units" },
+    "/audit_logs": { "schema": "AuditLog", "description": "Audit trails" }
+  }
+}

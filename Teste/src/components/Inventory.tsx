@@ -35,21 +35,22 @@ import {
 
 interface InventoryProps {
   products: Product[];
-  categories: {id: number, name: string}[];
-  units: {id: number, name: string}[];
+  categories: {id: string | number, name: string}[];
+  units: {id: string | number, name: string}[];
   suppliers: Supplier[];
-  locations: {id: number, name: string}[];
+  locations: {id: string | number, name: string}[];
   orders: Order[];
   movements: Movement[];
+  isAdmin?: boolean;
   onAddProduct: (p: FormData) => void;
-  onUpdateProduct: (id: number, p: FormData) => Promise<void>;
-  onDeleteProduct: (id: number) => Promise<void>;
+  onUpdateProduct: (id: string | number, p: FormData) => Promise<void>;
+  onDeleteProduct: (id: string | number) => Promise<void>;
   onAddCategory: (name: string) => Promise<void>;
   onAddUnit: (name: string) => Promise<void>;
-  onUpdateCategory: (id: number, name: string) => Promise<void>;
+  onUpdateCategory: (id: string | number, name: string) => Promise<void>;
   onAddSupplier: (name: string) => Promise<void>;
   onAddLocation: (name: string) => Promise<void>;
-  onUpdateLocation: (id: number, name: string) => Promise<void>;
+  onUpdateLocation: (id: string | number, name: string) => Promise<void>;
   onStockIn: (data: any) => Promise<void>;
   onStockOut: (data: any) => Promise<void>;
   initialSearchTerm?: string;
@@ -64,6 +65,7 @@ export const Inventory = ({
   locations,
   orders,
   movements,
+  isAdmin = false,
   onAddProduct, 
   onUpdateProduct,
   onDeleteProduct,
@@ -94,11 +96,11 @@ export const Inventory = ({
   const [isAddingCategory, setIsAddingCategory] = useState(false);
   const [isAddingUnit, setIsAddingUnit] = useState(false);
   const [isEditingCategory, setIsEditingCategory] = useState(false);
-  const [editingCategoryId, setEditingCategoryId] = useState<number | null>(null);
+  const [editingCategoryId, setEditingCategoryId] = useState<string | number | null>(null);
   const [isAddingSupplier, setIsAddingSupplier] = useState(false);
   const [isAddingLocation, setIsAddingLocation] = useState(false);
   const [isEditingLocation, setIsEditingLocation] = useState(false);
-  const [editingLocationId, setEditingLocationId] = useState<number | null>(null);
+  const [editingLocationId, setEditingLocationId] = useState<string | number | null>(null);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [newUnitName, setNewUnitName] = useState('');
   const [newSupplierName, setNewSupplierName] = useState('');
@@ -228,6 +230,15 @@ export const Inventory = ({
     if (!formData.name) {
       newFieldErrors.name = 'O nome do produto é obrigatório.';
       hasError = true;
+    } else {
+      const isDuplicate = products.some(p => 
+        p.id !== editingProduct?.id && 
+        p.name.toUpperCase() === formData.name.toUpperCase()
+      );
+      if (isDuplicate) {
+        newFieldErrors.name = 'PRODUTO JÁ CADASTRADO COM ESTE NOME';
+        hasError = true;
+      }
     }
     if (!formData.category) {
       newFieldErrors.category = 'A categoria é obrigatória.';
@@ -352,6 +363,17 @@ export const Inventory = ({
       newFieldErrors.supplier_id = 'O fornecedor é obrigatório.';
       hasError = true;
     }
+    if (stockInData.doc_number) {
+      const isDuplicate = movements.some(m => 
+        m.type === 'IN' && 
+        m.doc_number === stockInData.doc_number && 
+        m.supplier_id === parseInt(stockInData.supplier_id)
+      );
+      if (isDuplicate) {
+        newFieldErrors.doc_number = 'Nº DOCUMENTO JÁ CADASTRADO PARA ESTE FORNECEDOR';
+        hasError = true;
+      }
+    }
     if (!stockInData.issue_date) {
       newFieldErrors.issue_date = 'A data de emissão é obrigatória.';
       hasError = true;
@@ -409,6 +431,13 @@ export const Inventory = ({
 
   const handleAddCategory = async () => {
     if (newCategoryName.trim()) {
+      const name = newCategoryName.trim().toUpperCase();
+      const isDuplicate = categories.some(c => c.id !== editingCategoryId && c.name.toUpperCase() === name);
+      if (isDuplicate) {
+        setError('CATEGORIA JÁ CADASTRADA');
+        return;
+      }
+
       if (isEditingCategory && editingCategoryId) {
         await onUpdateCategory(editingCategoryId, newCategoryName.trim());
       } else {
@@ -424,6 +453,13 @@ export const Inventory = ({
 
   const handleAddUnit = async () => {
     if (newUnitName.trim()) {
+      const name = newUnitName.trim().toUpperCase();
+      const isDuplicate = units.some(u => u.name.toUpperCase() === name);
+      if (isDuplicate) {
+        setError('UNIDADE JÁ CADASTRADA');
+        return;
+      }
+
       await onAddUnit(newUnitName.trim().toUpperCase());
       setFormData({ ...formData, unit: newUnitName.trim().toUpperCase() });
       setNewUnitName('');
@@ -433,6 +469,13 @@ export const Inventory = ({
 
   const handleAddSupplier = async () => {
     if (newSupplierName.trim()) {
+      const name = newSupplierName.trim().toUpperCase();
+      const isDuplicate = suppliers.some(s => (s.name || s.razao_social)?.toUpperCase() === name);
+      if (isDuplicate) {
+        setError('FORNECEDOR JÁ CADASTRADO');
+        return;
+      }
+
       await onAddSupplier(newSupplierName.trim());
       setNewSupplierName('');
       setIsAddingSupplier(false);
@@ -441,6 +484,13 @@ export const Inventory = ({
 
   const handleAddLocation = async () => {
     if (newLocationName.trim()) {
+      const name = newLocationName.trim().toUpperCase();
+      const isDuplicate = locations.some(l => l.id !== editingLocationId && l.name.toUpperCase() === name);
+      if (isDuplicate) {
+        setError('LOCALIZAÇÃO JÁ CADASTRADA');
+        return;
+      }
+
       if (isEditingLocation && editingLocationId) {
         await onUpdateLocation(editingLocationId, newLocationName.trim());
       } else {
@@ -695,6 +745,7 @@ export const Inventory = ({
               requestSort={requestSort}
               getSortIcon={getSortIcon}
               onProductClick={handleProductClick}
+              isAdmin={isAdmin}
             />
           ) : (
             <MovementTable movements={filteredMovements} />
@@ -785,6 +836,7 @@ export const Inventory = ({
         product={selectedProductForDetail}
         movements={productMovements}
         isLoading={isLoadingMovements}
+        isAdmin={isAdmin}
         onEdit={(p: any) => {
           setEditingProduct(p);
           setIsModalOpen(true);

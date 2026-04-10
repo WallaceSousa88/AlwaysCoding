@@ -10,7 +10,8 @@ interface AssetTableProps {
   getSortIcon: (key: keyof Asset | 'status') => React.ReactNode;
   onAssetClick: (asset: Asset) => void;
   onEdit: (asset: Asset) => void;
-  onDelete: (id: number) => void;
+  onDelete: (id: string | number) => void;
+  isAdmin?: boolean;
 }
 
 export const AssetTable = ({ 
@@ -20,7 +21,8 @@ export const AssetTable = ({
   getSortIcon, 
   onAssetClick,
   onEdit,
-  onDelete
+  onDelete,
+  isAdmin = false
 }: AssetTableProps) => {
   return (
     <table className="w-full text-left border-collapse">
@@ -56,7 +58,7 @@ export const AssetTable = ({
               <div className="flex items-center gap-2">Status {getSortIcon('status')}</div>
             </th>
           )}
-          <th className="px-6 py-4 text-xs font-bold text-zinc-400 uppercase tracking-widest text-right">Ações</th>
+          {isAdmin && <th className="px-6 py-4 text-xs font-bold text-zinc-400 uppercase tracking-widest text-right">Ações</th>}
         </tr>
       </thead>
       <tbody>
@@ -110,24 +112,26 @@ export const AssetTable = ({
                 </span>
               </td>
             )}
-            <td className="px-6 py-4 text-right" onClick={e => e.stopPropagation()}>
-              <div className="flex items-center justify-end gap-2">
-                <button 
-                  onClick={() => onEdit(asset)}
-                  className="p-2 text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-all"
-                  title="Editar"
-                >
-                  <Edit size={16} />
-                </button>
-                <button 
-                  onClick={() => onDelete(asset.id)}
-                  className="p-2 text-zinc-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg transition-all"
-                  title="Excluir"
-                >
-                  <Trash2 size={16} />
-                </button>
-              </div>
-            </td>
+            {isAdmin && (
+              <td className="px-6 py-4 text-right" onClick={e => e.stopPropagation()}>
+                <div className="flex items-center justify-end gap-2">
+                  <button 
+                    onClick={() => onEdit(asset)}
+                    className="p-2 text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-all"
+                    title="Editar"
+                  >
+                    <Edit size={16} />
+                  </button>
+                  <button 
+                    onClick={() => onDelete(asset.id)}
+                    className="p-2 text-zinc-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg transition-all"
+                    title="Excluir"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              </td>
+            )}
           </tr>
         ))}
       </tbody>
