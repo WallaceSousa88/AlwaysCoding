@@ -1028,23 +1028,21 @@ export const ProductDetailModal = ({
               </div>
             </div>
             <div className="flex items-center gap-2">
+              <button 
+                onClick={() => onEdit(product)}
+                className="p-2 text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg transition-colors shadow-sm"
+                title="Editar"
+              >
+                <Edit size={18} />
+              </button>
               {isAdmin && (
-                <>
-                  <button 
-                    onClick={() => onEdit(product)}
-                    className="p-2 text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg transition-colors shadow-sm"
-                    title="Editar"
-                  >
-                    <Edit size={18} />
-                  </button>
-                  <button 
-                    onClick={() => setShowConfirmDelete(true)}
-                    className="p-2 text-rose-600 hover:text-rose-700 bg-rose-50 dark:bg-rose-500/10 border border-rose-100 dark:border-rose-500/20 rounded-lg transition-colors shadow-sm"
-                    title="Excluir"
-                  >
-                    <Trash2 size={18} />
-                  </button>
-                </>
+                <button 
+                  onClick={() => setShowConfirmDelete(true)}
+                  className="p-2 text-rose-600 hover:text-rose-700 bg-rose-50 dark:bg-rose-500/10 border border-rose-100 dark:border-rose-500/20 rounded-lg transition-colors shadow-sm"
+                  title="Excluir"
+                >
+                  <Trash2 size={18} />
+                </button>
               )}
               <button onClick={onClose} className="p-2 text-zinc-400 hover:text-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-300 ml-2">
                 <X size={20} />

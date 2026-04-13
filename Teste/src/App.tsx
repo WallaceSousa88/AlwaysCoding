@@ -1067,12 +1067,10 @@ export default function App() {
           }}
           addButtonLabel="NOVO CLIENTE"
           onItemClick={(client) => {
-            if (isAdmin) {
-              setEditingClient(client);
-              setIsClientModalOpen(true);
-            }
+            setEditingClient(client);
+            setIsClientModalOpen(true);
           }}
-          showActions={isAdmin}
+          showActions={true}
           onMenuClick={handleGenericMenuClick}
         />
       );
@@ -1099,12 +1097,10 @@ export default function App() {
           }}
           addButtonLabel="NOVO FORNECEDOR"
           onItemClick={(supplier) => {
-            if (isAdmin) {
-              setEditingSupplier(supplier);
-              setIsSupplierModalOpen(true);
-            }
+            setEditingSupplier(supplier);
+            setIsSupplierModalOpen(true);
           }}
-          showActions={isAdmin}
+          showActions={true}
           onMenuClick={handleGenericMenuClick}
         />
       );
@@ -1438,7 +1434,7 @@ export default function App() {
       />
 
       <AnimatePresence>
-        {isAdmin && activeGenericMenuId && genericMenuPosition && (
+        {activeGenericMenuId && genericMenuPosition && (
           <>
             <div className="fixed inset-0 z-[150]" onClick={() => setActiveGenericMenuId(null)} />
             <motion.div 
@@ -1489,30 +1485,32 @@ export default function App() {
                 <Edit size={14} />
                 Editar
               </button>
-              <button 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  const title = activeTab === 'production' ? 'Excluir Ordem' :
-                                activeTab === 'clients' ? 'Excluir Cliente' :
-                                activeTab === 'suppliers' ? 'Excluir Fornecedor' : 'Excluir Item';
-                  
-                  showConfirm(
-                    title,
-                    'Tem certeza que deseja excluir este item? Esta ação não pode ser desfeita.',
-                    () => {
-                      if (activeTab === 'production') deleteOrder(activeGenericMenuId!);
-                      else if (activeTab === 'clients') deleteClient(activeGenericMenuId!);
-                      else if (activeTab === 'suppliers') deleteSupplier(activeGenericMenuId!);
-                      else if (activeTab === 'assets') deleteAsset(activeGenericMenuId!);
-                    }
-                  );
-                  setActiveGenericMenuId(null);
-                }}
-                className="flex items-center gap-2 w-full px-3 py-2 text-xs font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg transition-colors"
-              >
-                <Trash2 size={14} />
-                Excluir
-              </button>
+              {isAdmin && (
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const title = activeTab === 'production' ? 'Excluir Ordem' :
+                                  activeTab === 'clients' ? 'Excluir Cliente' :
+                                  activeTab === 'suppliers' ? 'Excluir Fornecedor' : 'Excluir Item';
+                    
+                    showConfirm(
+                      title,
+                      'Tem certeza que deseja excluir este item? Esta ação não pode ser desfeita.',
+                      () => {
+                        if (activeTab === 'production') deleteOrder(activeGenericMenuId!);
+                        else if (activeTab === 'clients') deleteClient(activeGenericMenuId!);
+                        else if (activeTab === 'suppliers') deleteSupplier(activeGenericMenuId!);
+                        else if (activeTab === 'assets') deleteAsset(activeGenericMenuId!);
+                      }
+                    );
+                    setActiveGenericMenuId(null);
+                  }}
+                  className="flex items-center gap-2 w-full px-3 py-2 text-xs font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg transition-colors"
+                >
+                  <Trash2 size={14} />
+                  Excluir
+                </button>
+              )}
             </motion.div>
           </>
         )}

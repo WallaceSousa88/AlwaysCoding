@@ -184,14 +184,12 @@ export const Kanban = ({ orders, onUpdateStatus, onEdit, onDelete, onAdd, onItem
                 >
                 <div className="flex justify-between items-start mb-2">
                   <span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase">#{order.id}</span>
-                  {isAdmin && (
-                    <button 
-                      onClick={(e) => openMenu(e, order.id)}
-                      className="text-zinc-300 hover:text-zinc-600 dark:text-zinc-600 dark:hover:text-zinc-300"
-                    >
-                      <MoreVertical size={14} />
-                    </button>
-                  )}
+                  <button 
+                    onClick={(e) => openMenu(e, order.id)}
+                    className="text-zinc-300 hover:text-zinc-600 dark:text-zinc-600 dark:hover:text-zinc-300"
+                  >
+                    <MoreVertical size={14} />
+                  </button>
                 </div>
                 <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 mb-1 uppercase">{order.title}</h4>
                 <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-3 line-clamp-2 uppercase">{order.description || 'SEM DESCRIÇÃO'}</p>
@@ -251,7 +249,7 @@ export const Kanban = ({ orders, onUpdateStatus, onEdit, onDelete, onAdd, onItem
       </div>
 
       <AnimatePresence>
-        {isAdmin && activeMenuId && (
+        {activeMenuId && (
           <>
             <div 
               className="fixed inset-0 z-[150]" 
@@ -276,18 +274,22 @@ export const Kanban = ({ orders, onUpdateStatus, onEdit, onDelete, onAdd, onItem
                 <Edit size={14} />
                 Editar Ordem
               </button>
-              <div className="h-px bg-zinc-100 dark:bg-zinc-800 my-1" />
-              <button 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDelete(activeMenuId);
-                  setActiveMenuId(null);
-                }}
-                className="flex items-center gap-2 w-full px-3 py-2 text-xs font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg transition-colors"
-              >
-                <Trash2 size={14} />
-                Excluir Ordem
-              </button>
+              {isAdmin && (
+                <>
+                  <div className="h-px bg-zinc-100 dark:bg-zinc-800 my-1" />
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDelete(activeMenuId);
+                      setActiveMenuId(null);
+                    }}
+                    className="flex items-center gap-2 w-full px-3 py-2 text-xs font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg transition-colors"
+                  >
+                    <Trash2 size={14} />
+                    Excluir Ordem
+                  </button>
+                </>
+              )}
             </motion.div>
           </>
         )}

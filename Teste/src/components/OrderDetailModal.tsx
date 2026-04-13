@@ -141,16 +141,16 @@ export const OrderDetailModal = ({
       <Modal isOpen={isOpen} onClose={onClose} title="Checklist de Produção">
         <div className="space-y-8">
           {/* Header Actions */}
-          {isAdmin && (
-            <div className="flex items-center justify-end gap-2 -mt-4 mb-4">
-              <Button 
-                variant="ghost" 
-                onClick={() => onEdit(order)}
-                className="h-9 w-9 p-0 flex items-center justify-center"
-                title="Editar"
-              >
-                <Edit size={18} />
-              </Button>
+          <div className="flex items-center justify-end gap-2 -mt-4 mb-4">
+            <Button 
+              variant="ghost" 
+              onClick={() => onEdit(order)}
+              className="h-9 w-9 p-0 flex items-center justify-center"
+              title="Editar"
+            >
+              <Edit size={18} />
+            </Button>
+            {isAdmin && (
               <Button 
                 variant="ghost" 
                 onClick={handleDelete}
@@ -159,8 +159,8 @@ export const OrderDetailModal = ({
               >
                 <Trash2 size={18} />
               </Button>
-            </div>
-          )}
+            )}
+          </div>
 
           {/* Title & Status */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">

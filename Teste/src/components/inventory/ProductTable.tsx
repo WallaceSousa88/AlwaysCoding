@@ -9,6 +9,7 @@ interface ProductTableProps {
   requestSort: (key: keyof Product | 'status') => void;
   getSortIcon: (key: keyof Product | 'status') => React.ReactNode;
   onProductClick: (p: Product) => void;
+  isAdmin?: boolean;
 }
 
 export const ProductTable = ({
@@ -16,7 +17,8 @@ export const ProductTable = ({
   visibleColumns,
   requestSort,
   getSortIcon,
-  onProductClick
+  onProductClick,
+  isAdmin = false
 }: ProductTableProps) => {
   return (
     <table className="w-full text-left border-collapse">

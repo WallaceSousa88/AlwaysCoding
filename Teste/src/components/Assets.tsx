@@ -249,10 +249,8 @@ export const Assets = ({
             requestSort={requestSort}
             getSortIcon={getSortIcon}
             onAssetClick={(asset) => { 
-              if (isAdmin) {
-                setEditingAsset(asset); 
-                setIsModalOpen(true); 
-              }
+              setEditingAsset(asset); 
+              setIsModalOpen(true); 
             }}
             onEdit={(asset) => { setEditingAsset(asset); setIsModalOpen(true); }}
             onDelete={onDeleteAsset}
