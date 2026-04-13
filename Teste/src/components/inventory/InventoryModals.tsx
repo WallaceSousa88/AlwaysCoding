@@ -56,36 +56,133 @@ export const ProductModal = ({
   fileInputRef,
   handleFileChange,
   onClear
-}: ProductModalProps) => (
-  <Modal isOpen={isOpen} onClose={onClose} title={editingProduct ? 'EDITAR PRODUTO' : 'NOVO PRODUTO'} noPadding>
-    <form onSubmit={onSubmit} noValidate className="p-6 space-y-6 overflow-y-auto flex-1">
-      {productError && <ErrorAlert>{productError}</ErrorAlert>}
-      <div className="flex flex-col items-center gap-4">
-        <div className="relative group">
-          <div className="w-24 h-24 rounded-2xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center overflow-hidden border-2 border-dashed border-zinc-200 dark:border-zinc-700 group-hover:border-zinc-400 transition-colors">
-            {formData.photo ? (
-              <img src={formData.photo} alt="Preview" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-            ) : (
-              <Camera className="text-zinc-400" size={32} />
-            )}
+}: ProductModalProps) => {
+  const [isCameraOpen, setIsCameraOpen] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+
+  const startCamera = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: 'environment' } 
+      });
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+      streamRef.current = stream;
+      setIsCameraOpen(true);
+    } catch (err) {
+      console.error("Error accessing camera:", err);
+      alert("Não foi possível acessar a câmera. Verifique as permissões.");
+    }
+  };
+
+  const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+    setIsCameraOpen(false);
+  };
+
+  const takePhoto = () => {
+    if (videoRef.current) {
+      const canvas = document.createElement('canvas');
+      canvas.width = videoRef.current.videoWidth;
+      canvas.height = videoRef.current.videoHeight;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(videoRef.current, 0, 0);
+        const photoData = canvas.toDataURL('image/jpeg');
+        setFormData({ ...formData, photo: photoData });
+        stopCamera();
+      }
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, []);
+
+  return (
+    <Modal isOpen={isOpen} onClose={() => { stopCamera(); onClose(); }} title={editingProduct ? 'EDITAR PRODUTO' : 'NOVO PRODUTO'} noPadding>
+      <form onSubmit={onSubmit} noValidate className="p-6 space-y-6 overflow-y-auto flex-1">
+        {productError && <ErrorAlert>{productError}</ErrorAlert>}
+        <div className="flex flex-col items-center gap-4">
+          <div className="relative group">
+            <div className="w-24 h-24 rounded-2xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center overflow-hidden border-2 border-dashed border-zinc-200 dark:border-zinc-700 group-hover:border-zinc-400 group-hover:ring-4 group-hover:ring-zinc-900/5 dark:group-hover:ring-white/5 transition-all duration-300 shadow-sm">
+              {formData.photo ? (
+                <img src={formData.photo} alt="Preview" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+              ) : (
+                <Camera className="text-zinc-400" size={32} />
+              )}
+            </div>
+            <div className="absolute -bottom-2 -right-2 flex gap-1">
+              <button 
+                type="button"
+                onClick={startCamera}
+                className="p-2 bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 rounded-xl shadow-lg hover:scale-110 transition-transform"
+                title="Tirar Foto"
+              >
+                <Camera size={16} />
+              </button>
+              <button 
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="p-2 bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 rounded-xl shadow-lg hover:scale-110 transition-transform"
+                title="Upload de Arquivo"
+              >
+                <Plus size={16} />
+              </button>
+            </div>
+            <input 
+              type="file" 
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              accept="image/*"
+              className="hidden"
+            />
           </div>
-          <button 
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className="absolute -bottom-2 -right-2 p-2 bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 rounded-xl shadow-lg hover:scale-110 transition-transform"
-          >
-            <Plus size={16} />
-          </button>
-          <input 
-            type="file" 
-            ref={fileInputRef}
-            onChange={handleFileChange}
-            accept="image/*"
-            className="hidden"
-          />
+          <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Foto do Produto</p>
         </div>
-        <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Foto do Produto</p>
-      </div>
+
+        <AnimatePresence>
+          {isCameraOpen && (
+            <motion.div 
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="relative bg-black rounded-2xl overflow-hidden"
+            >
+              <video 
+                ref={videoRef} 
+                autoPlay 
+                playsInline 
+                className="w-full aspect-square object-cover"
+              />
+              <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-4">
+                <button 
+                  type="button"
+                  onClick={stopCamera}
+                  className="px-4 py-2 bg-white/20 hover:bg-white/40 text-white text-xs font-bold rounded-xl backdrop-blur-md transition-colors uppercase"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  type="button"
+                  onClick={takePhoto}
+                  className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform"
+                >
+                  <div className="w-10 h-10 rounded-full border-2 border-zinc-900" />
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="md:col-span-2">
@@ -229,7 +326,8 @@ export const ProductModal = ({
       </Modal>
     </form>
   </Modal>
-);
+  );
+};
 
 export const StockInModal = ({
   isOpen,
