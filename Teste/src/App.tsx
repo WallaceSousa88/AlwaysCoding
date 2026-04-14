@@ -17,7 +17,8 @@ import {
   Loader2,
   ShieldCheck,
   Eye,
-  EyeOff
+  EyeOff,
+  Briefcase
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -34,12 +35,13 @@ import {
   Timestamp 
 } from 'firebase/firestore';
 import { auth, db } from './firebase';
-import { Product, Client, Supplier, Asset, Order, Movement, OrderStatus, OrderDetails, User } from './types';
+import { Product, Client, Supplier, Asset, Order, Movement, OrderStatus, OrderDetails, User, ServiceEntry as ServiceEntryType } from './types';
 import { apiService } from './services/apiService';
 import { KANBAN_COLUMNS } from './constants';
 import { Dashboard } from './components/Dashboard';
 import { Inventory } from './components/Inventory';
 import { Kanban } from './components/Kanban';
+import { ServiceEntry } from './components/ServiceEntry';
 import { GenericList } from './components/GenericList';
 import { Settings as SettingsView } from './components/Settings';
 import { Assets } from './components/Assets';
@@ -264,6 +266,7 @@ export default function App() {
   const [clients, setClients] = useState<Client[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [assets, setAssets] = useState<Asset[]>([]);
+  const [serviceEntries, setServiceEntries] = useState<ServiceEntryType[]>([]);
   const [systemUsers, setSystemUsers] = useState<User[]>([]);
 
   const currentUserProfile = systemUsers.find(u => 
@@ -272,12 +275,13 @@ export default function App() {
   );
   const isAdmin = (user?.email === 'admin@skysmart.com' || user?.email === 'Diesel.087@gmail.com' || currentUserProfile?.role === 'Administrador');
   const userPermissions = isAdmin
-    ? ['dashboard', 'kanban', 'production', 'clients', 'suppliers', 'assets', 'inventory', 'financial', 'audit', 'settings']
+    ? ['dashboard', 'kanban', 'service_entry', 'production', 'clients', 'suppliers', 'assets', 'inventory', 'financial', 'audit', 'settings']
     : (currentUserProfile?.permissions || []);
 
   const sidebarItems = [
     { id: 'dashboard', icon: LayoutDashboard, label: "Painel" },
     { id: 'kanban', icon: ClipboardList, label: "Kanban" },
+    { id: 'service_entry', icon: Briefcase, label: "Entrada de Serviço" },
     { id: 'production', icon: FileText, label: "Ordem de Produção" },
     { id: 'clients', icon: Users, label: "Clientes" },
     { id: 'suppliers', icon: Truck, label: "Fornecedores" },
@@ -487,6 +491,8 @@ export default function App() {
   };
   const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
   const [editingAsset, setEditingAsset] = useState<Asset | null>(null);
+  const [isServiceEntryModalOpen, setIsServiceEntryModalOpen] = useState(false);
+  const [editingServiceEntry, setEditingServiceEntry] = useState<ServiceEntryType | null>(null);
   const [selectedOrderForDetail, setSelectedOrderForDetail] = useState<Order | null>(null);
   const [selectedFinancialEntry, setSelectedFinancialEntry] = useState<any | null>(null);
   const [confirmModal, setConfirmModal] = useState<{
@@ -547,7 +553,8 @@ export default function App() {
         unitsData,
         movementsData,
         auditLogsData,
-        usersData
+        usersData,
+        serviceEntriesData
       ] = await Promise.all([
         apiService.getStats(),
         apiService.getProducts(),
@@ -560,7 +567,8 @@ export default function App() {
         apiService.getUnits(),
         apiService.getMovements(),
         apiService.getAuditLogs(),
-        apiService.getUsers()
+        apiService.getUsers(),
+        apiService.getServiceEntries()
       ]);
 
       setStats(statsData);
@@ -575,6 +583,7 @@ export default function App() {
       setMovements(movementsData || []);
       setAuditLogs(auditLogsData || []);
       setSystemUsers(usersData || []);
+      setServiceEntries(serviceEntriesData || []);
     } catch (err) {
       console.error('Error fetching data:', err);
       setGlobalError('ERRO AO ATUALIZAR DADOS. TENTE NOVAMENTE.');
@@ -588,7 +597,7 @@ export default function App() {
       const order = orders.find(o => o.id === id);
       if (order) {
         const statusIndex = KANBAN_COLUMNS.indexOf(status);
-        const finalizationIndex = KANBAN_COLUMNS.indexOf('FINALIZAÇÃO');
+        const finalizationIndex = KANBAN_COLUMNS.indexOf('REVISÃO PRODUÇÃO');
 
         if (statusIndex >= finalizationIndex) {
           let progress = 0;
@@ -653,17 +662,19 @@ export default function App() {
   };
 
   const deleteOrder = async (id: string | number) => {
+    try {
+      await apiService.deleteOrder(id);
+      fetchData();
+    } catch (err) {
+      console.error('Error deleting order:', err);
+    }
+  };
+
+  const handleDeleteOrder = async (id: string | number) => {
     showConfirm(
-      'Excluir Ordem',
-      'Tem certeza que deseja excluir esta ordem de produção? Esta ação não pode ser desfeita.',
-      async () => {
-        try {
-          await apiService.deleteOrder(id);
-          fetchData();
-        } catch (err) {
-          console.error('Error deleting order:', err);
-        }
-      }
+      'EXCLUIR ORDEM',
+      'TEM CERTEZA QUE DESEJA EXCLUIR ESTA ORDEM DE PRODUÇÃO? ESTA AÇÃO NÃO PODE SER DESFEITA.',
+      () => deleteOrder(id)
     );
   };
 
@@ -706,17 +717,19 @@ export default function App() {
   };
 
   const deleteClient = async (id: string | number) => {
+    try {
+      await apiService.deleteClient(id);
+      fetchData();
+    } catch (err) {
+      console.error('Error deleting client:', err);
+    }
+  };
+
+  const handleDeleteClient = async (id: string | number) => {
     showConfirm(
-      'Excluir Cliente',
-      'Tem certeza que deseja excluir este cliente? Esta ação não pode ser desfeita.',
-      async () => {
-        try {
-          await apiService.deleteClient(id);
-          fetchData();
-        } catch (err) {
-          console.error('Error deleting client:', err);
-        }
-      }
+      'EXCLUIR CLIENTE',
+      'TEM CERTEZA QUE DESEJA EXCLUIR ESTE CLIENTE? ESTA AÇÃO NÃO PODE SER DESFEITA.',
+      () => deleteClient(id)
     );
   };
 
@@ -740,17 +753,19 @@ export default function App() {
   };
 
   const deleteSupplier = async (id: string | number) => {
+    try {
+      await apiService.deleteSupplier(id);
+      fetchData();
+    } catch (err) {
+      console.error('Error deleting supplier:', err);
+    }
+  };
+
+  const handleDeleteSupplier = async (id: string | number) => {
     showConfirm(
-      'Excluir Fornecedor',
-      'Tem certeza que deseja excluir este fornecedor? Esta ação não pode ser desfeita.',
-      async () => {
-        try {
-          await apiService.deleteSupplier(id);
-          fetchData();
-        } catch (err) {
-          console.error('Error deleting supplier:', err);
-        }
-      }
+      'EXCLUIR FORNECEDOR',
+      'TEM CERTEZA QUE DESEJA EXCLUIR ESTE FORNECEDOR? ESTA AÇÃO NÃO PODE SER DESFEITA.',
+      () => deleteSupplier(id)
     );
   };
 
@@ -807,18 +822,47 @@ export default function App() {
   };
 
   const deleteAsset = async (id: string | number) => {
+    try {
+      await apiService.deleteAsset(id);
+      fetchData();
+    } catch (err) {
+      console.error('Error deleting asset:', err);
+    }
+  };
+
+  const handleDeleteAsset = async (id: string | number) => {
     showConfirm(
-      'Excluir Patrimônio',
-      'Tem certeza que deseja excluir este patrimônio? Esta ação não pode ser desfeita.',
-      async () => {
-        try {
-          await apiService.deleteAsset(id);
-          fetchData();
-        } catch (err) {
-          console.error('Error deleting asset:', err);
-        }
-      }
+      'EXCLUIR PATRIMÔNIO',
+      'TEM CERTEZA QUE DESEJA EXCLUIR ESTE PATRIMÔNIO? ESTA AÇÃO NÃO PODE SER DESFEITA.',
+      () => deleteAsset(id)
     );
+  };
+
+  const addServiceEntry = async (data: any) => {
+    try {
+      await apiService.addServiceEntry(data);
+      fetchData();
+    } catch (err) {
+      console.error('Error adding service entry:', err);
+    }
+  };
+
+  const updateServiceEntry = async (id: string | number, data: any) => {
+    try {
+      await apiService.updateServiceEntry(id, data);
+      fetchData();
+    } catch (err) {
+      console.error('Error updating service entry:', err);
+    }
+  };
+
+  const deleteServiceEntry = async (id: string | number) => {
+    try {
+      await apiService.deleteServiceEntry(id);
+      fetchData();
+    } catch (err) {
+      console.error('Error deleting service entry:', err);
+    }
   };
 
   const addProduct = async (formData: FormData) => {
@@ -938,19 +982,21 @@ export default function App() {
     }
   };
 
+  const deleteProduct = async (id: string | number) => {
+    try {
+      await apiService.deleteProduct(id);
+      fetchData();
+    } catch (err: any) {
+      setGlobalError(err.message || 'Erro ao excluir produto');
+      console.error('Error deleting product:', err);
+    }
+  };
+
   const handleDeleteProduct = async (id: string | number) => {
     showConfirm(
-      'Excluir Produto',
-      'Tem certeza que deseja excluir este produto? Esta ação não pode ser desfeita.',
-      async () => {
-        try {
-          await apiService.deleteProduct(id);
-          fetchData();
-        } catch (err: any) {
-          setGlobalError(err.message || 'Erro ao excluir produto');
-          console.error('Error deleting product:', err);
-        }
-      }
+      'EXCLUIR PRODUTO',
+      'TEM CERTEZA QUE DESEJA EXCLUIR ESTE PRODUTO? ESTA AÇÃO NÃO PODE SER DESFEITA.',
+      () => deleteProduct(id)
     );
   };
 
@@ -965,7 +1011,7 @@ export default function App() {
             const firstAvailable = sidebarItems.find(item => userPermissions.includes(item.id as any));
             if (firstAvailable) setActiveTab(firstAvailable.id as any);
           }}>
-            Voltar para Início
+            VOLTAR PARA INÍCIO
           </Button>
         </div>
       );
@@ -994,7 +1040,7 @@ export default function App() {
           isAdmin={isAdmin}
           onAddProduct={addProduct} 
           onUpdateProduct={handleUpdateProduct}
-          onDeleteProduct={handleDeleteProduct}
+          onDeleteProduct={deleteProduct}
           onAddCategory={addCategory} 
           onAddUnit={addUnit}
           onUpdateCategory={updateCategory}
@@ -1029,12 +1075,14 @@ export default function App() {
       case 'kanban': return (
         <Kanban 
           orders={orders} 
+          serviceEntries={serviceEntries}
           onUpdateStatus={updateOrderStatus} 
           onEdit={(order) => {
             setEditingOrder(order);
             setIsOrderModalOpen(true);
+            setSelectedOrderForDetail(null);
           }}
-          onDelete={deleteOrder}
+          onDelete={handleDeleteOrder}
           onAdd={() => {
             setEditingOrder(null);
             setIsOrderModalOpen(true);
@@ -1042,6 +1090,22 @@ export default function App() {
           onItemClick={(order) => setSelectedOrderForDetail(order)}
           onError={setGlobalError}
           isAdmin={isAdmin}
+        />
+      );
+      case 'service_entry': return (
+        <ServiceEntry 
+          serviceEntries={serviceEntries}
+          clients={clients}
+          isAdmin={isAdmin}
+          currentUserId={user?.uid}
+          onAdd={addServiceEntry}
+          onUpdate={updateServiceEntry}
+          onDelete={deleteServiceEntry}
+          onMenuClick={handleGenericMenuClick}
+          isModalOpen={isServiceEntryModalOpen}
+          setIsModalOpen={setIsServiceEntryModalOpen}
+          editingEntry={editingServiceEntry}
+          setEditingEntry={setEditingServiceEntry}
         />
       );
       case 'clients': return (
@@ -1307,6 +1371,7 @@ export default function App() {
             <h1 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
               {activeTab === 'dashboard' && 'PAINEL'}
               {activeTab === 'kanban' && 'KANBAN'}
+              {activeTab === 'service_entry' && 'ENTRADA DE SERVIÇO'}
               {activeTab === 'production' && 'ORDENS DE PRODUÇÃO'}
               {activeTab === 'clients' && 'CLIENTES'}
               {activeTab === 'suppliers' && 'FORNECEDORES'}
@@ -1363,6 +1428,7 @@ export default function App() {
         editingOrder={editingOrder}
         clients={clients}
         orders={orders}
+        serviceEntries={serviceEntries}
       />
 
       <OrderDetailModal 
@@ -1375,7 +1441,7 @@ export default function App() {
           setIsOrderModalOpen(true);
           setSelectedOrderForDetail(null);
         }}
-        onDelete={deleteOrder}
+        onDelete={handleDeleteOrder}
         onUpdate={fetchData}
       />
 
@@ -1453,6 +1519,12 @@ export default function App() {
                       setEditingOrder(item);
                       setIsOrderModalOpen(true);
                     }
+                  } else if (activeTab === 'service_entry') {
+                    const item = serviceEntries.find(s => s.id === activeGenericMenuId);
+                    if (item) {
+                      setEditingServiceEntry(item);
+                      setIsServiceEntryModalOpen(true);
+                    }
                   } else if (activeTab === 'clients') {
                     const item = clients.find(c => c.id === activeGenericMenuId);
                     if (item) {
@@ -1476,31 +1548,34 @@ export default function App() {
                 }}
                 className={cn(
                   "flex items-center gap-2 w-full px-3 py-2 text-xs font-medium rounded-lg transition-colors",
-                  ['production', 'clients', 'suppliers', 'assets'].includes(activeTab)
+                  ['production', 'service_entry', 'clients', 'suppliers', 'assets'].includes(activeTab)
                     ? "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800" 
                     : "text-zinc-300 dark:text-zinc-600 cursor-not-allowed"
                 )}
-                disabled={!['production', 'clients', 'suppliers', 'assets'].includes(activeTab)}
+                disabled={!['production', 'service_entry', 'clients', 'suppliers', 'assets'].includes(activeTab)}
               >
                 <Edit size={14} />
-                Editar
+                EDITAR
               </button>
               {isAdmin && (
                 <button 
                   onClick={(e) => {
                     e.stopPropagation();
-                    const title = activeTab === 'production' ? 'Excluir Ordem' :
-                                  activeTab === 'clients' ? 'Excluir Cliente' :
-                                  activeTab === 'suppliers' ? 'Excluir Fornecedor' : 'Excluir Item';
+                    const idToDelete = activeGenericMenuId;
+                    const title = activeTab === 'production' ? 'EXCLUIR ORDEM' :
+                                  activeTab === 'service_entry' ? 'EXCLUIR ENTRADA' :
+                                  activeTab === 'clients' ? 'EXCLUIR CLIENTE' :
+                                  activeTab === 'suppliers' ? 'EXCLUIR FORNECEDOR' : 'EXCLUIR ITEM';
                     
                     showConfirm(
                       title,
-                      'Tem certeza que deseja excluir este item? Esta ação não pode ser desfeita.',
+                      'TEM CERTEZA QUE DESEJA EXCLUIR ESTE ITEM? ESTA AÇÃO NÃO PODE SER DESFEITA.',
                       () => {
-                        if (activeTab === 'production') deleteOrder(activeGenericMenuId!);
-                        else if (activeTab === 'clients') deleteClient(activeGenericMenuId!);
-                        else if (activeTab === 'suppliers') deleteSupplier(activeGenericMenuId!);
-                        else if (activeTab === 'assets') deleteAsset(activeGenericMenuId!);
+                        if (activeTab === 'production') deleteOrder(idToDelete!);
+                        else if (activeTab === 'service_entry') deleteServiceEntry(idToDelete!);
+                        else if (activeTab === 'clients') deleteClient(idToDelete!);
+                        else if (activeTab === 'suppliers') deleteSupplier(idToDelete!);
+                        else if (activeTab === 'assets') deleteAsset(idToDelete!);
                       }
                     );
                     setActiveGenericMenuId(null);
@@ -1508,7 +1583,7 @@ export default function App() {
                   className="flex items-center gap-2 w-full px-3 py-2 text-xs font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg transition-colors"
                 >
                   <Trash2 size={14} />
-                  Excluir
+                  EXCLUIR
                 </button>
               )}
             </motion.div>

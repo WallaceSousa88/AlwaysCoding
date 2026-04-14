@@ -200,13 +200,13 @@ export const OrderDetailModal = ({
                   </p>
                 </div>
                 <div>
-                  <p className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase">Entrega</p>
+                  <p className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase">ENTREGA</p>
                   <p className="text-xs font-medium text-emerald-600 dark:text-emerald-400 font-bold">
                     {details?.delivery_date ? new Date(details.delivery_date).toLocaleDateString('pt-BR') : '-'}
                   </p>
                 </div>
                 <div>
-                  <p className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase">Criação</p>
+                  <p className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase">CRIAÇÃO</p>
                   <p className="text-xs font-medium text-zinc-900 dark:text-zinc-100">
                     {order.created_at ? new Date(order.created_at).toLocaleDateString('pt-BR') : '-'}
                   </p>
@@ -220,7 +220,7 @@ export const OrderDetailModal = ({
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <h3 className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-widest flex items-center gap-2">
-                  <Info size={14} /> Processo de Produção
+                  <Info size={14} /> PROCESSO DE PRODUÇÃO
                 </h3>
                 <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase bg-emerald-50 dark:bg-emerald-500/10 px-2 py-1 rounded-md">
                   Itens Selecionados
@@ -229,56 +229,57 @@ export const OrderDetailModal = ({
               
               {details.kanban_description && (
                 <div className="p-4 bg-zinc-50 dark:bg-zinc-800/30 rounded-2xl border border-zinc-100 dark:border-zinc-800">
-                  <h4 className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest mb-2">Observações Kanban</h4>
+                  <h4 className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest mb-2">OBSERVAÇÕES KANBAN</h4>
                   <p className="text-xs text-zinc-600 dark:text-zinc-300 uppercase leading-relaxed">{details.kanban_description}</p>
                 </div>
               )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-10 p-6 bg-white dark:bg-zinc-900/50 border border-zinc-100 dark:border-zinc-800 rounded-3xl shadow-sm">
-                {renderSection('1. Impressão 3D', details.impression_3d?.items || [])}
-                {renderSection('2. Cortes / Dobra', details.cuts_folds?.items || [])}
-                {renderSection('3. Soldas', details.welds?.items || [])}
-                {renderSection('4. Acabamento Grosso', details.rough_finish?.items || [])}
-                {renderSection('5. Pintura', details.painting?.items || [], details.painting?.shipping_date && (
+                {renderSection('1. IMPRESSÃO 3D', details.impression_3d?.items || [])}
+                {renderSection('2. CORTES / DOBRA', details.cuts_folds?.items || [])}
+                {renderSection('3. SOLDAS', details.welds?.items || [])}
+                {renderSection('4. ACABAMENTO GROSSO', details.rough_finish?.items || [])}
+                {renderSection('5. PINTURA', details.painting?.items || [], details.painting?.shipping_date && (
                   <div className="mt-2 p-2 bg-zinc-100 dark:bg-zinc-800 rounded-lg">
-                    <p className="text-[9px] font-bold text-zinc-400 uppercase">Data de Envio</p>
+                    <p className="text-[9px] font-bold text-zinc-400 uppercase">DATA DE ENVIO</p>
                     <p className="text-[10px] font-bold text-zinc-900 dark:text-zinc-100">{new Date(details.painting.shipping_date).toLocaleDateString('pt-BR')}</p>
                   </div>
                 ))}
-                {renderSection('6. Acabamento Final', details.final_finish?.items || [])}
-                {renderSection('7. Iluminação', details.lighting?.items || [], (details.lighting?.temperature || details.lighting?.model) && (
+                {renderSection('6. ACABAMENTO FINAL', details.final_finish?.items || [])}
+                {renderSection('7. ILUMINAÇÃO', details.lighting?.items || [], (details.lighting?.temperature || details.lighting?.model) && (
                   <div className="mt-2 p-2 bg-zinc-100 dark:bg-zinc-800 rounded-lg grid grid-cols-2 gap-2">
-                    {details.lighting.temperature && <div><p className="text-[9px] font-bold text-zinc-400 uppercase">Temp</p><p className="text-[10px] font-bold">{details.lighting.temperature}K</p></div>}
-                    {details.lighting.model && <div><p className="text-[9px] font-bold text-zinc-400 uppercase">Modelo</p><p className="text-[10px] font-bold uppercase truncate">{details.lighting.model}</p></div>}
+                    {details.lighting.temperature && <div><p className="text-[9px] font-bold text-zinc-400 uppercase">TEMP</p><p className="text-[10px] font-bold">{details.lighting.temperature}K</p></div>}
+                    {details.lighting.model && <div><p className="text-[9px] font-bold text-zinc-400 uppercase">MODELO</p><p className="text-[10px] font-bold uppercase truncate">{details.lighting.model}</p></div>}
                   </div>
                 ))}
-                {renderSection('8. Acessórios', details.accessories?.items || [])}
-                {renderSection('9. Colagem', details.gluing?.items || [])}
+                {renderSection('8. ACESSÓRIOS', details.accessories?.items || [])}
+                {renderSection('9. COLAGEM', details.gluing?.items || [])}
               </div>
             </div>
           )}
 
           {/* Progress Bar */}
           <div className="space-y-4 pt-4">
-            <h3 className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-widest">Status da Produção</h3>
+            <h3 className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-widest">STATUS DA PRODUÇÃO</h3>
             <div className="relative h-3 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
               <motion.div 
                 className="absolute inset-y-0 left-0 bg-zinc-900 dark:bg-zinc-100"
                 initial={{ width: 0 }}
                 animate={{ 
                   width: order.status === 'CONCLUIDO' ? '100%' :
-                         order.status === 'REVISÃO' ? '85%' : 
-                         order.status === 'FINALIZAÇÃO' ? '70%' : 
-                         order.status === 'PRODUÇÃO' ? '55%' : 
-                         order.status === 'SEPARAÇÃO DE MATERIAL' ? '40%' : '20%' 
+                         order.status === 'REVISÃO INSTALAÇÃO' ? '85%' : 
+                         order.status === 'INSTALAÇÃO' ? '72%' : 
+                         order.status === 'REVISÃO PRODUÇÃO' ? '58%' : 
+                         order.status === 'PRODUÇÃO' ? '44%' : 
+                         order.status === 'SEPARAÇÃO DE MATERIAL' ? '30%' : '15%' 
                 }}
                 transition={{ duration: 0.8, ease: "easeOut" }}
               />
             </div>
             <div className="flex justify-between text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-tighter">
-              <span>Início</span>
-              <span>Produção</span>
-              <span>Concluído</span>
+              <span>INÍCIO</span>
+              <span>PRODUÇÃO</span>
+              <span>CONCLUÍDO</span>
             </div>
           </div>
         </div>
@@ -288,8 +289,8 @@ export const OrderDetailModal = ({
         isOpen={!!confirmingItem}
         onClose={() => setConfirmingItem(null)}
         onConfirm={() => handleCheckItem(confirmingItem!.section, confirmingItem!.item)}
-        title="Confirmar Finalização"
-        message={`Você está prestes a marcar "${confirmingItem?.item}" como concluído. Esta ação é irreversível e ficará registrada no histórico do sistema.`}
+        title="CONFIRMAR REVISÃO"
+        message={`VOCÊ ESTÁ PRESTES A MARCAR "${confirmingItem?.item}" COMO CONCLUÍDO. ESTA AÇÃO É IRREVERSÍVEL E FICARÁ REGISTRADA NO HISTÓRICO DO SISTEMA.`}
         isLoading={isUpdating}
       />
     </>

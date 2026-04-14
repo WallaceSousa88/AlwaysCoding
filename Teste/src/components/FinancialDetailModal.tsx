@@ -110,28 +110,28 @@ export const FinancialDetailModal = ({
           <div className="space-y-1">
             <div className="flex items-center gap-2 text-zinc-400 dark:text-zinc-500">
               <Hash size={12} />
-              <span className="text-[10px] font-bold uppercase tracking-wider">Documento Fiscal</span>
+              <span className="text-[10px] font-bold uppercase tracking-wider">DOCUMENTO FISCAL</span>
             </div>
             <p className="text-sm font-bold text-zinc-900 dark:text-zinc-100">{entry.doc_number || '-'}</p>
           </div>
           <div className="space-y-1">
             <div className="flex items-center gap-2 text-zinc-400 dark:text-zinc-500">
               <Calendar size={12} />
-              <span className="text-[10px] font-bold uppercase tracking-wider">Data de Emissão</span>
+              <span className="text-[10px] font-bold uppercase tracking-wider">DATA DE EMISSÃO</span>
             </div>
             <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">{entry.issue_date_fmt || '-'}</p>
           </div>
           <div className="space-y-1">
             <div className="flex items-center gap-2 text-zinc-400 dark:text-zinc-500">
               <Package size={12} />
-              <span className="text-[10px] font-bold uppercase tracking-wider">Produto</span>
+              <span className="text-[10px] font-bold uppercase tracking-wider">PRODUTO</span>
             </div>
             <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100 uppercase">{entry.product_name}</p>
           </div>
           <div className="space-y-1">
             <div className="flex items-center gap-2 text-zinc-400 dark:text-zinc-500">
               <User size={12} />
-              <span className="text-[10px] font-bold uppercase tracking-wider">Fornecedor</span>
+              <span className="text-[10px] font-bold uppercase tracking-wider">FORNECEDOR</span>
             </div>
             <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100 uppercase">{entry.supplier_name || '-'}</p>
           </div>
@@ -140,15 +140,15 @@ export const FinancialDetailModal = ({
         {/* Values Section */}
         <div className="p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl border border-zinc-100 dark:border-zinc-800 grid grid-cols-3 gap-4">
           <div className="text-center">
-            <p className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Quantidade</p>
+            <p className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">QUANTIDADE</p>
             <p className="text-lg font-bold text-zinc-900 dark:text-zinc-100">{entry.quantity}</p>
           </div>
           <div className="text-center border-x border-zinc-200 dark:border-zinc-700">
-            <p className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Valor Unitário</p>
+            <p className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">VALOR UNITÁRIO</p>
             <p className="text-lg font-bold text-zinc-900 dark:text-zinc-100">{entry.unit_price_fmt}</p>
           </div>
           <div className="text-center">
-            <p className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Valor Total</p>
+            <p className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">VALOR TOTAL</p>
             <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{entry.total_value}</p>
           </div>
         </div>
@@ -156,7 +156,7 @@ export const FinancialDetailModal = ({
         {/* Invoices Section */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-widest">Anexos / Notas Fiscais</h3>
+            <h3 className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-widest">ANEXOS / NOTAS FISCAIS</h3>
           </div>
           {renderInvoices()}
         </div>
@@ -164,7 +164,7 @@ export const FinancialDetailModal = ({
         {/* Additional Info */}
         <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800">
           <div className="flex items-center justify-between text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
-            <span>Data do Movimento: {entry.date_fmt}</span>
+            <span>DATA DO MOVIMENTO: {entry.date_fmt}</span>
             <span>ID: #{entry.id}</span>
           </div>
         </div>

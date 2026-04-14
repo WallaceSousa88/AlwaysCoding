@@ -34,7 +34,7 @@ export const ExportButtons = ({
           title="Importar Produtos via CSV"
         >
           <Upload size={18} />
-          Importar
+          IMPORTAR
         </button>
         <button 
           onClick={onPdfClick}

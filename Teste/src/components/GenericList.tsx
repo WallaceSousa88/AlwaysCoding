@@ -114,7 +114,7 @@ export const GenericList = ({
                           }}
                           className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100 focus:ring-zinc-900 dark:focus:ring-zinc-100"
                         />
-                        <span className="text-xs text-zinc-600 dark:text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-zinc-100 transition-colors">{col.label}</span>
+                        <span className="text-xs text-zinc-600 dark:text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-zinc-100 transition-colors uppercase">{col.label}</span>
                       </label>
                     ))}
                   </div>
@@ -193,7 +193,7 @@ export const GenericList = ({
             {filteredItems.length === 0 && (
               <tr>
                 <td colSpan={activeColumns.length + (showActions ? 1 : 0)} className="px-6 py-8 text-center text-zinc-400 dark:text-zinc-500 text-sm italic uppercase">
-                  Nenhum registro encontrado.
+                  NENHUM REGISTRO ENCONTRADO.
                 </td>
               </tr>
             )}

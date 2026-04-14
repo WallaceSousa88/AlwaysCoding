@@ -173,6 +173,21 @@
         "created_at": { "type": "string", "format": "date-time" }
       },
       "required": ["action", "created_at"]
+    },
+    "ServiceEntry": {
+      "title": "ServiceEntry",
+      "description": "Vendor service entry",
+      "type": "object",
+      "properties": {
+        "client_id": { "type": "string" },
+        "client_name": { "type": "string" },
+        "obra": { "type": "string" },
+        "local": { "type": "string", "enum": ["Sky 1", "Sky 2"] },
+        "valor": { "type": "number" },
+        "date": { "type": "string", "format": "date-time" },
+        "created_by": { "type": "string" }
+      },
+      "required": ["client_id", "obra", "local", "valor"]
     }
   },
   "firestore": {
@@ -186,6 +201,7 @@
     "/categories": { "schema": "Category", "description": "Product categories" },
     "/locations": { "schema": "Location", "description": "Storage locations" },
     "/units": { "schema": "Unit", "description": "Measurement units" },
-    "/audit_logs": { "schema": "AuditLog", "description": "Audit trails" }
+    "/audit_logs": { "schema": "AuditLog", "description": "Audit trails" },
+    "/service_entries": { "schema": "ServiceEntry", "description": "Vendor service entries" }
   }
 }

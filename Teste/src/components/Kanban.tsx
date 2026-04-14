@@ -1,12 +1,14 @@
 import React, { useState, useMemo } from 'react';
-import { Search, MoreVertical, ChevronRight, Plus, Edit, Trash2, CheckCircle2 } from 'lucide-react';
+import { Search, MoreVertical, ChevronRight, Plus, Edit, Trash2, CheckCircle2, User } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Order, OrderStatus, OrderDetails } from '../types';
+import { Order, OrderStatus, OrderDetails, ServiceEntry } from '../types';
 import { KANBAN_COLUMNS } from '../constants';
-import { cn, SearchBar } from './Common';
+import { cn, SearchBar, Card } from './Common';
+import { Briefcase, MapPin, DollarSign, Calendar } from 'lucide-react';
 
 interface KanbanProps {
   orders: Order[];
+  serviceEntries: ServiceEntry[];
   onUpdateStatus: (id: string | number, status: OrderStatus) => void;
   onEdit: (order: Order) => void;
   onDelete: (id: string | number) => void;
@@ -16,7 +18,7 @@ interface KanbanProps {
   isAdmin?: boolean;
 }
 
-export const Kanban = ({ orders, onUpdateStatus, onEdit, onDelete, onAdd, onItemClick, onError, isAdmin = false }: KanbanProps) => {
+export const Kanban = ({ orders, serviceEntries, onUpdateStatus, onEdit, onDelete, onAdd, onItemClick, onError, isAdmin = false }: KanbanProps) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [draggedOrderId, setDraggedOrderId] = useState<string | number | null>(null);
   const [draggedOverColumn, setDraggedOverColumn] = useState<string | null>(null);
@@ -57,7 +59,7 @@ export const Kanban = ({ orders, onUpdateStatus, onEdit, onDelete, onAdd, onItem
     if (!order) return false;
 
     const statusIndex = KANBAN_COLUMNS.indexOf(newStatus);
-    const finalizationIndex = KANBAN_COLUMNS.indexOf('FINALIZAÇÃO');
+    const finalizationIndex = KANBAN_COLUMNS.indexOf('REVISÃO PRODUÇÃO');
 
     if (statusIndex >= finalizationIndex) {
       const progress = getOrderProgress(order);
@@ -78,6 +80,16 @@ export const Kanban = ({ orders, onUpdateStatus, onEdit, onDelete, onAdd, onItem
       )
     );
   }, [orders, searchTerm]);
+
+  const filteredServiceEntries = useMemo(() => {
+    // Only show service entries that are NOT linked to any order
+    const linkedEntryIds = orders.map(o => o.service_entry_id?.toString()).filter(Boolean);
+    return serviceEntries.filter(entry => 
+      !linkedEntryIds.includes(entry.id.toString()) &&
+      (entry.obra.toLowerCase().includes(searchTerm.toLowerCase()) || 
+       entry.client_name?.toLowerCase().includes(searchTerm.toLowerCase()))
+    );
+  }, [serviceEntries, orders, searchTerm]);
 
   const handleDragStart = (e: React.DragEvent, orderId: string | number) => {
     setDraggedOrderId(orderId);
@@ -134,6 +146,50 @@ export const Kanban = ({ orders, onUpdateStatus, onEdit, onDelete, onAdd, onItem
         </button>
       </div>
       <div className="flex gap-4 overflow-x-auto pb-4 min-h-[calc(100vh-16rem)] items-start">
+        {/* Service Entries Column */}
+        <div className="flex-shrink-0 w-72 flex flex-col gap-3 self-stretch">
+          <div className="flex items-center justify-between px-1">
+            <h3 className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-widest">ENTRADA DE SERVIÇO</h3>
+            <span className="bg-zinc-200 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 text-[10px] font-bold px-2 py-0.5 rounded-full">
+              {filteredServiceEntries.length}
+            </span>
+          </div>
+          <div className="flex-1 rounded-xl p-2 space-y-3 border bg-zinc-100/50 dark:bg-zinc-900/50 border-zinc-200/50 dark:border-zinc-800/50 min-h-[150px]">
+            {filteredServiceEntries.map((entry) => (
+              <motion.div
+                key={entry.id}
+                whileHover={{ scale: 1.02 }}
+                className="bg-white dark:bg-zinc-900 p-4 rounded-lg shadow-sm border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 transition-all"
+              >
+                <div className="flex justify-between items-start mb-2">
+                  <span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase">ENTRADA #{entry.id}</span>
+                </div>
+                <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 mb-1 uppercase">{entry.obra}</h4>
+                <div className="space-y-2 mt-3">
+                  <div className="flex items-center gap-2 text-[10px] text-zinc-500 uppercase">
+                    <User size={12} />
+                    {entry.client_name}
+                  </div>
+                  <div className="flex items-center gap-2 text-[10px] text-zinc-500 uppercase">
+                    <MapPin size={12} />
+                    {entry.local}
+                  </div>
+                  <div className="flex items-center justify-between pt-2 border-t border-zinc-50 dark:border-zinc-800">
+                    <div className="flex items-center gap-1 text-emerald-600 font-bold text-[10px]">
+                      <DollarSign size={12} />
+                      R$ {entry.valor.toLocaleString('pt-BR')}
+                    </div>
+                    <div className="flex items-center gap-1 text-zinc-400 text-[9px]">
+                      <Calendar size={12} />
+                      {new Date(entry.date).toLocaleDateString('pt-BR')}
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+
         {KANBAN_COLUMNS.map((col) => (
           <div 
             key={col} 
@@ -197,7 +253,7 @@ export const Kanban = ({ orders, onUpdateStatus, onEdit, onDelete, onAdd, onItem
                 {/* Progress Indicator */}
                 <div className="mb-4 space-y-1.5">
                   <div className="flex justify-between items-center">
-                    <span className="text-[9px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-tighter">Progresso de Produção</span>
+                    <span className="text-[9px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-tighter">PROGRESSO DE PRODUÇÃO</span>
                     <span className={cn(
                       "text-[10px] font-bold",
                       getOrderProgress(order) === 100 ? "text-emerald-500" : "text-zinc-900 dark:text-zinc-100"
@@ -272,7 +328,7 @@ export const Kanban = ({ orders, onUpdateStatus, onEdit, onDelete, onAdd, onItem
                 className="flex items-center gap-2 w-full px-3 py-2 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-zinc-100 rounded-lg transition-colors"
               >
                 <Edit size={14} />
-                Editar Ordem
+                EDITAR ORDEM
               </button>
               {isAdmin && (
                 <>
@@ -286,7 +342,7 @@ export const Kanban = ({ orders, onUpdateStatus, onEdit, onDelete, onAdd, onItem
                     className="flex items-center gap-2 w-full px-3 py-2 text-xs font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg transition-colors"
                   >
                     <Trash2 size={14} />
-                    Excluir Ordem
+                    EXCLUIR ORDEM
                   </button>
                 </>
               )}

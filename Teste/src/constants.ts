@@ -4,8 +4,9 @@ export const KANBAN_COLUMNS: OrderStatus[] = [
   'ORDENS DE PRODUÇÃO',
   'SEPARAÇÃO DE MATERIAL',
   'PRODUÇÃO',
-  'FINALIZAÇÃO',
-  'REVISÃO',
+  'REVISÃO PRODUÇÃO',
+  'INSTALAÇÃO',
+  'REVISÃO INSTALAÇÃO',
   'CONCLUIDO'
 ];
 

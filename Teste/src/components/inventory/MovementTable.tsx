@@ -55,8 +55,8 @@ export const MovementTable = ({ movements }: MovementTableProps) => {
         ))}
         {movements.length === 0 && (
           <tr>
-            <td colSpan={6} className="px-6 py-8 text-center text-zinc-400 dark:text-zinc-500 text-sm italic">
-              Nenhuma movimentação encontrada.
+            <td colSpan={6} className="px-6 py-8 text-center text-zinc-400 dark:text-zinc-500 text-sm italic uppercase font-bold">
+              NENHUMA MOVIMENTAÇÃO ENCONTRADA.
             </td>
           </tr>
         )}

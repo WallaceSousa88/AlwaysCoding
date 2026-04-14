@@ -170,7 +170,7 @@ export const ProductModal = ({
                   onClick={stopCamera}
                   className="px-4 py-2 bg-white/20 hover:bg-white/40 text-white text-xs font-bold rounded-xl backdrop-blur-md transition-colors uppercase"
                 >
-                  Cancelar
+                  CANCELAR
                 </button>
                 <button 
                   type="button"
@@ -261,21 +261,21 @@ export const ProductModal = ({
           onClick={onClear}
           className="px-4 py-2 text-sm font-bold text-zinc-400 hover:text-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-300 transition-colors mr-auto uppercase"
         >
-          Limpar Campos
+          LIMPAR CAMPOS
         </button>
         <button 
           type="button"
           onClick={onClose}
           className="px-6 py-2 text-sm font-bold text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 transition-colors uppercase"
         >
-          Cancelar
+          CANCELAR
         </button>
         <Button type="submit">
           {editingProduct ? 'ATUALIZAR' : 'SALVAR'}
         </Button>
       </div>
 
-      <Modal isOpen={isAddingCategory} onClose={() => setIsAddingCategory(false)} title="Nova Categoria" zIndex={300}>
+      <Modal isOpen={isAddingCategory} onClose={() => setIsAddingCategory(false)} title="NOVA CATEGORIA" zIndex={300}>
         <div className="p-6 space-y-4">
           <Input 
             label="Nome da Categoria" 
@@ -291,16 +291,16 @@ export const ProductModal = ({
               onClick={() => setIsAddingCategory(false)}
               className="px-4 py-2 text-sm font-bold text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 transition-colors uppercase"
             >
-              Cancelar
+              CANCELAR
             </button>
             <Button onClick={onAddCategory}>
-              Salvar Categoria
+              SALVAR CATEGORIA
             </Button>
           </div>
         </div>
       </Modal>
 
-      <Modal isOpen={isAddingUnit} onClose={() => setIsAddingUnit(false)} title="Nova Unidade" zIndex={300}>
+      <Modal isOpen={isAddingUnit} onClose={() => setIsAddingUnit(false)} title="NOVA UNIDADE" zIndex={300}>
         <div className="p-6 space-y-4">
           <Input 
             label="Nome da Unidade" 
@@ -316,10 +316,10 @@ export const ProductModal = ({
               onClick={() => setIsAddingUnit(false)}
               className="px-4 py-2 text-sm font-bold text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 transition-colors uppercase"
             >
-              Cancelar
+              CANCELAR
             </button>
             <Button onClick={onAddUnit}>
-              Salvar Unidade
+              SALVAR UNIDADE
             </Button>
           </div>
         </div>
@@ -473,7 +473,7 @@ export const StockInModal = ({
                   </button>
                   <div className="absolute bottom-4 left-0 right-0 text-center">
                     <p className="text-white text-[10px] font-bold uppercase tracking-widest bg-black/50 inline-block px-3 py-1 rounded-full">
-                      Aponte para o código de barras da NF-e
+                      APONTE PARA O CÓDIGO DE BARRAS DA NF-E
                     </p>
                   </div>
                 </>
@@ -556,7 +556,7 @@ export const StockInModal = ({
                         </button>
                       ))
                     ) : (
-                      <div className="px-4 py-3 text-sm text-zinc-500 text-center">Nenhum produto encontrado</div>
+                      <div className="px-4 py-3 text-sm text-zinc-500 text-center uppercase">NENHUM PRODUTO ENCONTRADO</div>
                     )}
                   </motion.div>
                 )}
@@ -987,13 +987,13 @@ export const StockOutModal = ({
             onClick={onClear}
             className="mr-auto"
           >
-            Limpar Campos
+            LIMPAR CAMPOS
           </Button>
           <Button 
             variant="secondary"
             onClick={onClose}
           >
-            Cancelar
+            CANCELAR
           </Button>
           <Button 
             type="submit"
@@ -1230,11 +1230,11 @@ export const ProductDetailModal = ({
                   <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
                     {isLoading ? (
                       <tr>
-                        <td colSpan={6} className="px-4 py-8 text-center text-zinc-400 dark:text-zinc-500 text-xs">Carregando histórico...</td>
+                        <td colSpan={6} className="px-4 py-8 text-center text-zinc-400 dark:text-zinc-500 text-xs uppercase">CARREGANDO HISTÓRICO...</td>
                       </tr>
                     ) : movements.length === 0 ? (
                       <tr>
-                        <td colSpan={6} className="px-4 py-8 text-center text-zinc-400 dark:text-zinc-500 text-xs">Nenhuma movimentação encontrada.</td>
+                        <td colSpan={6} className="px-4 py-8 text-center text-zinc-400 dark:text-zinc-500 text-xs uppercase">NENHUMA MOVIMENTAÇÃO ENCONTRADA.</td>
                       </tr>
                     ) : (
                       movements.map((m: Movement) => (

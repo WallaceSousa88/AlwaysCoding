@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, ChevronLeft, ChevronRight, Plus, Trash2, Check, AlertTriangle, Type, User, Calendar, FileText, Thermometer, Box } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Plus, Trash2, Check, AlertTriangle, Type, User, Calendar, FileText, Thermometer, Box, Briefcase } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Client, Order, OrderStatus, OrderDetails, ProductionItem } from '../types';
+import { Client, Order, OrderStatus, OrderDetails, ProductionItem, ServiceEntry } from '../types';
 import { KANBAN_COLUMNS } from '../constants';
 import { cn, Input, Select, Button, Modal, ErrorAlert, TextArea } from './Common';
 
@@ -12,6 +12,7 @@ interface OrderModalProps {
   editingOrder?: Order | null;
   clients: Client[];
   orders: Order[];
+  serviceEntries: ServiceEntry[];
 }
 
 const CUTS_FOLDS_OPTIONS = ['Chaparia', 'Gabarito Instalação', 'Metalon', 'Plotter', 'Dobra', 'Gabarito Produção', 'Router ACM', 'Acrílico', 'Corte Plasma', 'Laser Acrílico', 'Router MDF'];
@@ -29,7 +30,8 @@ export const OrderModal = ({
   onSubmit, 
   editingOrder, 
   clients,
-  orders
+  orders,
+  serviceEntries
 }: OrderModalProps) => {
   const [step, setStep] = useState(1);
   const [error, setError] = useState<string | null>(null);
@@ -39,6 +41,7 @@ export const OrderModal = ({
     title: '',
     description: '',
     client_id: '',
+    service_entry_id: '',
     status: 'ORDENS DE PRODUÇÃO' as OrderStatus,
     details: {
       entry_date: new Date().toISOString().split('T')[0],
@@ -96,6 +99,7 @@ export const OrderModal = ({
         title: editingOrder.title,
         description: editingOrder.description || '',
         client_id: editingOrder.client_id?.toString() || '',
+        service_entry_id: editingOrder.service_entry_id?.toString() || '',
         status: editingOrder.status,
         details: initialDetails
       });
@@ -127,6 +131,7 @@ export const OrderModal = ({
         title: '',
         description: '',
         client_id: '',
+        service_entry_id: '',
         status: 'ORDENS DE PRODUÇÃO',
         details: {
           entry_date: new Date().toISOString().split('T')[0],
@@ -181,7 +186,7 @@ export const OrderModal = ({
     if (step === 1) {
       let hasError = false;
       if (!formData.title) {
-        newFieldErrors.title = 'Por favor, informe o título da ordem.';
+        newFieldErrors.title = 'POR FAVOR, INFORME O TÍTULO DA ORDEM.';
         hasError = true;
       } else {
         const isDuplicate = orders.some(o => 
@@ -194,17 +199,17 @@ export const OrderModal = ({
         }
       }
       if (!formData.client_id) {
-        newFieldErrors.client_id = 'Por favor, selecione um cliente.';
+        newFieldErrors.client_id = 'POR FAVOR, SELECIONE UM CLIENTE.';
         hasError = true;
       }
       if (!formData.details.delivery_date) {
-        newFieldErrors.delivery_date = 'Por favor, informe a data de entrega.';
+        newFieldErrors.delivery_date = 'POR FAVOR, INFORME A DATA DE ENTREGA.';
         hasError = true;
       }
       
       if (hasError) {
         setFieldErrors(newFieldErrors);
-        setError('Por favor, preencha todos os campos obrigatórios.');
+        setError('POR FAVOR, PREENCHA TODOS OS CAMPOS OBRIGATÓRIOS.');
         return false;
       }
       
@@ -212,9 +217,9 @@ export const OrderModal = ({
       const delivery = new Date(formData.details.delivery_date);
       
       if (delivery < entry) {
-        newFieldErrors.delivery_date = 'A data de entrega não pode ser anterior à data de entrada.';
+        newFieldErrors.delivery_date = 'A DATA DE ENTREGA NÃO PODE SER ANTERIOR À DATA DE ENTRADA.';
         setFieldErrors(newFieldErrors);
-        setError('A data de entrega não pode ser anterior à data de entrada.');
+        setError('A DATA DE ENTREGA NÃO PODE SER ANTERIOR À DATA DE ENTRADA.');
         return false;
       }
     }
@@ -228,7 +233,7 @@ export const OrderModal = ({
     if (key) {
       const custom = customItems[key];
       if (custom.some(item => !item.trim())) {
-        setError('Por favor, informe o nome de todos os itens personalizados adicionados.');
+        setError('POR FAVOR, INFORME O NOME DE TODOS OS ITENS PERSONALIZADOS ADICIONADOS.');
         return false;
       }
     }
@@ -346,11 +351,39 @@ export const OrderModal = ({
     syncItems(key, newCustom);
   };
 
+  const handleServiceEntryChange = (entryId: string) => {
+    const entry = serviceEntries.find(e => e.id.toString() === entryId);
+    if (entry) {
+      setFormData(prev => ({
+        ...prev,
+        service_entry_id: entryId,
+        title: entry.obra.toUpperCase(),
+        client_id: entry.client_id.toString()
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        service_entry_id: ''
+      }));
+    }
+  };
+
   const renderStep = () => {
     switch (step) {
       case 1:
         return (
           <div className="space-y-4">
+            <Select
+              label="Vincular Entrada de Serviço (Opcional)"
+              icon={<Briefcase size={18} />}
+              value={formData.service_entry_id}
+              onChange={e => handleServiceEntryChange(e.target.value)}
+              options={[
+                { value: '', label: 'NÃO VINCULAR' },
+                ...serviceEntries.map(e => ({ value: e.id.toString(), label: `${e.obra} - ${e.client_name}`.toUpperCase() }))
+              ]}
+            />
+
             <Input
               label="Título da Ordem"
               icon={<Type size={18} />}
@@ -384,7 +417,7 @@ export const OrderModal = ({
                 error={fieldErrors.entry_date}
               />
               <Input
-                label="Data de Entrega"
+                label="DATA DE ENTREGA"
                 icon={<Calendar size={18} />}
                 type="date"
                 required
@@ -395,7 +428,7 @@ export const OrderModal = ({
             </div>
 
             <TextArea
-              label="Descrição"
+              label="DESCRIÇÃO"
               icon={<FileText size={14} />}
               required
               value={formData.description}
@@ -439,7 +472,7 @@ export const OrderModal = ({
               </div>
             </div>
             <TextArea
-              label="Descrição Opcional"
+              label="DESCRIÇÃO OPCIONAL"
               icon={<FileText size={14} />}
               value={formData.details.kanban_description}
               onChange={(e: any) => setFormData({...formData, details: {...formData.details, kanban_description: e.target.value.toUpperCase()}})}
@@ -558,12 +591,12 @@ export const OrderModal = ({
               className="w-full py-3 border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl text-zinc-400 hover:text-zinc-600 hover:border-zinc-400 transition-all flex items-center justify-center gap-2 font-bold text-xs uppercase"
             >
               <Plus size={18} />
-              Adicionar Item Personalizado
+              ADICIONAR ITEM PERSONALIZADO
             </button>
 
             {step === 7 && (
               <Input
-                label="Data de Envio"
+                label="DATA DE ENVIO"
                 icon={<Calendar size={18} />}
                 type="date"
                 value={formData.details.painting.shipping_date}
@@ -574,7 +607,7 @@ export const OrderModal = ({
             {step === 9 && (
               <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800 grid grid-cols-2 gap-4">
                 <Input
-                  label="Temperatura (K)"
+                  label="TEMPERATURA (K)"
                   icon={<Thermometer size={18} />}
                   type="number"
                   min="0"
@@ -582,7 +615,7 @@ export const OrderModal = ({
                   onChange={e => setFormData({...formData, details: {...formData.details, lighting: {...formData.details.lighting, temperature: e.target.value}}})}
                 />
                 <Input
-                  label="Modelo"
+                  label="MODELO"
                   icon={<Box size={18} />}
                   type="text"
                   value={formData.details.lighting.model}
@@ -619,22 +652,22 @@ export const OrderModal = ({
               >
                 <div className="mb-6">
                   <h3 className="text-xl font-bold text-zinc-900 dark:text-zinc-100 uppercase">
-                    {step === 1 && 'Dados Iniciais'}
-                    {step === 2 && 'Kanban'}
-                    {step === 3 && 'Impressão 3D'}
-                    {step === 4 && 'Cortes / Dobra'}
-                    {step === 5 && 'Soldas'}
-                    {step === 6 && 'Acabamento Grosso'}
-                    {step === 7 && 'Pintura'}
-                    {step === 8 && 'Acabamento Final'}
-                    {step === 9 && 'Iluminação'}
-                    {step === 10 && 'Acessórios'}
-                    {step === 11 && 'Colagem'}
+                    {step === 1 && 'DADOS INICIAIS'}
+                    {step === 2 && 'KANBAN'}
+                    {step === 3 && 'IMPRESSÃO 3D'}
+                    {step === 4 && 'CORTES / DOBRA'}
+                    {step === 5 && 'SOLDAS'}
+                    {step === 6 && 'ACABAMENTO GROSSO'}
+                    {step === 7 && 'PINTURA'}
+                    {step === 8 && 'ACABAMENTO FINAL'}
+                    {step === 9 && 'ILUMINAÇÃO'}
+                    {step === 10 && 'ACESSÓRIOS'}
+                    {step === 11 && 'COLAGEM'}
                   </h3>
                   <p className="text-xs text-zinc-500 dark:text-zinc-400 uppercase mt-1">
-                    {step === 1 && 'Preencha as informações básicas da ordem.'}
-                    {step === 2 && 'Selecione o status inicial no quadro Kanban.'}
-                    {step > 2 && 'Selecione os itens necessários para esta etapa.'}
+                    {step === 1 && 'PREENCHA AS INFORMAÇÕES BÁSICAS DA ORDEM.'}
+                    {step === 2 && 'SELECIONE O STATUS INICIAL NO QUADRO KANBAN.'}
+                    {step > 2 && 'SELECIONE OS ITENS NECESSÁRIOS PARA ESTA ETAPA.'}
                   </p>
                 </div>
                 {renderStep()}
@@ -650,7 +683,7 @@ export const OrderModal = ({
               className="flex items-center gap-2"
             >
               <ChevronLeft size={18} />
-              Anterior
+              ANTERIOR
             </Button>
             
             <div className="flex gap-3">
@@ -660,7 +693,7 @@ export const OrderModal = ({
                   onClick={handleNext}
                   className="flex items-center gap-2 px-8"
                 >
-                  Próximo
+                  PRÓXIMO
                   <ChevronRight size={18} />
                 </Button>
               ) : (
@@ -674,7 +707,7 @@ export const OrderModal = ({
                   }}
                   className="px-10"
                 >
-                  Finalizar e Criar Ordem
+                  FINALIZAR E CRIAR ORDEM
                 </Button>
               )}
             </div>

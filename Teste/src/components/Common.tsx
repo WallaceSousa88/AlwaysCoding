@@ -25,7 +25,7 @@ export const SidebarItem: React.FC<{ icon: any, label: string, active: boolean, 
   </button>
 );
 
-export const Card = ({ children, className, title, onClick }: { children: React.ReactNode, className?: string, title?: string, onClick?: () => void }) => (
+export const Card = ({ children, className, title, onClick, noPadding = false }: { children: React.ReactNode, className?: string, title?: string, onClick?: () => void, noPadding?: boolean }) => (
   <div 
     onClick={onClick}
     className={cn("bg-white border border-zinc-200 rounded-xl overflow-hidden shadow-sm dark:bg-zinc-900 dark:border-zinc-800/50", className)}
@@ -35,7 +35,7 @@ export const Card = ({ children, className, title, onClick }: { children: React.
         <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{title.toUpperCase()}</h3>
       </div>
     )}
-    <div className="p-6">{children}</div>
+    <div className={cn(noPadding ? "" : "p-6")}>{children}</div>
   </div>
 );
 
@@ -95,8 +95,8 @@ export const ConfirmModal = ({
   onConfirm, 
   title, 
   message, 
-  confirmText = "Confirmar", 
-  cancelText = "Cancelar", 
+  confirmText = "CONFIRMAR", 
+  cancelText = "CANCELAR", 
   variant = "danger", 
   isLoading = false 
 }: { 

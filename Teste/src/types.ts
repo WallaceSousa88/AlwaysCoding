@@ -1,4 +1,4 @@
-export type Permission = 'dashboard' | 'kanban' | 'production' | 'clients' | 'suppliers' | 'assets' | 'inventory' | 'financial' | 'settings' | 'audit';
+export type Permission = 'dashboard' | 'kanban' | 'service_entry' | 'production' | 'clients' | 'suppliers' | 'assets' | 'inventory' | 'financial' | 'settings' | 'audit';
 
 export interface User {
   id: string | number;
@@ -90,7 +90,7 @@ export interface Asset {
   disposal_value?: number;
 }
 
-export type OrderStatus = 'ORDENS DE PRODUÇÃO' | 'SEPARAÇÃO DE MATERIAL' | 'PRODUÇÃO' | 'FINALIZAÇÃO' | 'REVISÃO' | 'CONCLUIDO';
+export type OrderStatus = 'ENTRADA DE SERVIÇO' | 'ORDENS DE PRODUÇÃO' | 'SEPARAÇÃO DE MATERIAL' | 'PRODUÇÃO' | 'REVISÃO PRODUÇÃO' | 'INSTALAÇÃO' | 'REVISÃO INSTALAÇÃO' | 'CONCLUIDO';
 
 export interface Order {
   id: string | number;
@@ -101,6 +101,7 @@ export interface Order {
   client_name?: string;
   created_at: string;
   details?: string; // JSON string containing OrderDetails
+  service_entry_id?: string | number;
 }
 
 export interface ProductionItem {
@@ -122,6 +123,17 @@ export interface OrderDetails {
   lighting: { items: ProductionItem[]; temperature?: string; model?: string };
   accessories: { items: ProductionItem[] };
   gluing: { items: ProductionItem[] };
+}
+
+export interface ServiceEntry {
+  id: string | number;
+  client_id: string | number;
+  client_name?: string;
+  obra: string;
+  local: 'Sky 1' | 'Sky 2';
+  valor: number;
+  date: string;
+  created_by?: string;
 }
 
 export interface Movement {

@@ -637,7 +637,7 @@ export const Inventory = ({
               : "text-zinc-500 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
           )}
         >
-          Produtos
+          PRODUTOS
         </button>
         <button 
           onClick={() => setActiveSubTab('movements')}
@@ -648,7 +648,7 @@ export const Inventory = ({
               : "text-zinc-500 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
           )}
         >
-          Movimentações
+          MOVIMENTAÇÕES
         </button>
       </div>
       

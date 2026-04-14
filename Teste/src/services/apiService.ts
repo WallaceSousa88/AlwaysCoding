@@ -298,6 +298,55 @@ export const apiService = {
     }
   },
 
+  // Service Entries
+  getServiceEntries: async (userId?: string) => {
+    try {
+      let q = query(collection(db, 'service_entries'), orderBy('date', 'desc'));
+      if (userId) {
+        q = query(collection(db, 'service_entries'), where('created_by', '==', userId), orderBy('date', 'desc'));
+      }
+      const snap = await getDocs(q);
+      return snap.docs.map(d => {
+        const data = d.data();
+        return {
+          ...data,
+          id: d.id,
+          date: data.date instanceof Timestamp ? data.date.toDate().toISOString() : data.date
+        };
+      }) as any;
+    } catch (error) {
+      handleFirestoreError(error, OperationType.LIST, 'service_entries');
+    }
+  },
+  addServiceEntry: async (data: any) => {
+    try {
+      const docRef = await addDoc(collection(db, 'service_entries'), {
+        ...data,
+        date: serverTimestamp(),
+        created_by: auth.currentUser?.uid
+      });
+      return { id: docRef.id };
+    } catch (error) {
+      handleFirestoreError(error, OperationType.CREATE, 'service_entries');
+    }
+  },
+  updateServiceEntry: async (id: string | number, data: any) => {
+    try {
+      await updateDoc(doc(db, 'service_entries', String(id)), data);
+      return { success: true };
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `service_entries/${id}`);
+    }
+  },
+  deleteServiceEntry: async (id: string | number) => {
+    try {
+      await deleteDoc(doc(db, 'service_entries', String(id)));
+      return { success: true };
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, `service_entries/${id}`);
+    }
+  },
+
   // Clients
   getClients: async () => {
     try {
