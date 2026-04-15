@@ -385,7 +385,15 @@ export const Inventory = ({
       return;
     }
 
-    onStockIn(stockInData);
+    const product = products.find(p => p.id === parseInt(stockInData.product_id));
+    const supplier = suppliers.find(s => s.id.toString() === stockInData.supplier_id.toString());
+    const supplierName = supplier ? (supplier.tipo === 'PF' ? supplier.name : supplier.razao_social) : '';
+
+    onStockIn({
+      ...stockInData,
+      product_name: product?.name || '',
+      supplier_name: supplierName || ''
+    });
     setIsStockInModalOpen(false);
     resetStockInForm();
   };

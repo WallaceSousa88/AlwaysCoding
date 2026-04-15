@@ -170,7 +170,7 @@ export const ErrorAlert = ({ children, className }: { children: React.ReactNode,
   </div>
 );
 
-export const Input = ({ label, icon, className, error, required, ...props }: any) => (
+export const Input = ({ label, icon, onIconClick, className, error, required, ...props }: any) => (
   <div className="space-y-1.5 flex-1">
     {label && (
       <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-1">
@@ -179,10 +179,20 @@ export const Input = ({ label, icon, className, error, required, ...props }: any
       </label>
     )}
     <div className="relative group">
-      {icon && <div className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-zinc-900 dark:group-focus-within:text-zinc-100 transition-colors">{icon}</div>}
+      {icon && (
+        <div 
+          onClick={onIconClick}
+          className={cn(
+            "absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 transition-colors",
+            onIconClick ? "cursor-pointer hover:text-zinc-900 dark:hover:text-zinc-100" : "group-focus-within:text-zinc-900 dark:group-focus-within:text-zinc-100"
+          )}
+        >
+          {icon}
+        </div>
+      )}
       <input 
         className={cn(
-          "w-full bg-zinc-50 border border-zinc-200 rounded-xl py-2.5 text-sm transition-all focus:ring-2 focus:ring-zinc-900/5 focus:border-zinc-900 dark:bg-zinc-800/50 dark:border-zinc-800 dark:text-zinc-100 dark:focus:border-zinc-100",
+          "w-full bg-zinc-50 border border-zinc-200 rounded-xl py-2.5 text-sm text-zinc-900 transition-all focus:ring-2 focus:ring-zinc-900/5 focus:border-zinc-900 dark:bg-zinc-800/50 dark:border-zinc-800 dark:text-zinc-100 dark:focus:border-zinc-100",
           icon ? "pl-10 pr-4" : "px-4",
           error && "border-rose-500 focus:border-rose-500 focus:ring-rose-500/5",
           className
@@ -206,7 +216,7 @@ export const Select = ({ label, icon, options, className, error, required, ...pr
       {icon && <div className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-zinc-900 dark:group-focus-within:text-zinc-100 transition-colors pointer-events-none">{icon}</div>}
       <select 
         className={cn(
-          "w-full bg-zinc-50 border border-zinc-200 rounded-xl py-2.5 text-sm transition-all focus:ring-2 focus:ring-zinc-900/5 focus:border-zinc-900 dark:bg-zinc-800/50 dark:border-zinc-800 dark:text-zinc-100 dark:focus:border-zinc-100 appearance-none",
+          "w-full bg-zinc-50 border border-zinc-200 rounded-xl py-2.5 text-sm text-zinc-900 transition-all focus:ring-2 focus:ring-zinc-900/5 focus:border-zinc-900 dark:bg-zinc-800/50 dark:border-zinc-800 dark:text-zinc-100 dark:focus:border-zinc-100 appearance-none",
           icon ? "pl-10 pr-10" : "px-4 pr-10",
           error && "border-rose-500 focus:border-rose-500 focus:ring-rose-500/5",
           className

@@ -181,7 +181,15 @@ export const Kanban = ({ orders, serviceEntries, onUpdateStatus, onEdit, onDelet
                     </div>
                     <div className="flex items-center gap-1 text-zinc-400 text-[9px]">
                       <Calendar size={12} />
-                      {new Date(entry.date).toLocaleDateString('pt-BR')}
+                      {(() => {
+                        try {
+                          const d = new Date(entry.date);
+                          if (isNaN(d.getTime())) return '-';
+                          return d.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+                        } catch (e) {
+                          return '-';
+                        }
+                      })()}
                     </div>
                   </div>
                 </div>

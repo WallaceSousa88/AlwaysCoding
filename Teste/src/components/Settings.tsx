@@ -21,15 +21,34 @@ const PERMISSIONS_LIST: { id: Permission; label: string }[] = [
 
 interface SettingsProps {
   users: User[];
+  categories: { id: string | number; name: string }[];
+  units: { id: string | number; name: string }[];
   onAddUser: (data: any) => Promise<void>;
   onUpdateUser: (id: string | number, data: any) => Promise<void>;
   onDeleteUser: (id: string | number) => Promise<void>;
+  onUpdateCategory: (id: string | number, name: string) => Promise<void>;
+  onDeleteCategory: (id: string | number) => Promise<void>;
+  onUpdateUnit: (id: string | number, name: string) => Promise<void>;
+  onDeleteUnit: (id: string | number) => Promise<void>;
 }
 
-export const Settings = ({ users, onAddUser, onUpdateUser, onDeleteUser }: SettingsProps) => {
+export const Settings = ({ 
+  users, 
+  categories, 
+  units, 
+  onAddUser, 
+  onUpdateUser, 
+  onDeleteUser,
+  onUpdateCategory,
+  onDeleteCategory,
+  onUpdateUnit,
+  onDeleteUnit
+}: SettingsProps) => {
   const [isBackingUp, setIsBackingUp] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
   const [showConfirmRestore, setShowConfirmRestore] = useState(false);
+  const [showConfirmReset, setShowConfirmReset] = useState(false);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -47,6 +66,16 @@ export const Settings = ({ users, onAddUser, onUpdateUser, onDeleteUser }: Setti
   const [isDeletingUser, setIsDeletingUser] = useState<User | null>(null);
   const [isSavingUser, setIsSavingUser] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+
+  // Category/Unit Management State
+  const [isCatModalOpen, setIsCatModalOpen] = useState(false);
+  const [isUnitModalOpen, setIsUnitModalOpen] = useState(false);
+  const [editingCat, setEditingCat] = useState<{ id: string | number; name: string } | null>(null);
+  const [editingUnit, setEditingUnit] = useState<{ id: string | number; name: string } | null>(null);
+  const [catName, setCatName] = useState('');
+  const [unitName, setUnitName] = useState('');
+  const [isDeletingCat, setIsDeletingCat] = useState<{ id: string | number; name: string } | null>(null);
+  const [isDeletingUnit, setIsDeletingUnit] = useState<{ id: string | number; name: string } | null>(null);
 
   const handleSyncUsers = async () => {
     setIsSyncing(true);
@@ -129,6 +158,67 @@ export const Settings = ({ users, onAddUser, onUpdateUser, onDeleteUser }: Setti
     } finally {
       setIsImporting(false);
       setPendingFile(null);
+    }
+  };
+
+  const handleResetDatabase = async () => {
+    setIsResetting(true);
+    setError(null);
+    try {
+      await apiService.resetDatabase();
+      await apiService.createAuditLog('RESET DE SISTEMA', 'O BANCO DE DADOS FOI REINICIADO PELO ADMINISTRADOR.');
+      window.location.reload();
+    } catch (err: any) {
+      setError('Erro ao resetar banco: ' + err.message);
+    } finally {
+      setIsResetting(false);
+      setShowConfirmReset(false);
+    }
+  };
+
+  const handleCatSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingCat) return;
+    try {
+      await onUpdateCategory(editingCat.id, catName.toUpperCase());
+      setIsCatModalOpen(false);
+      setEditingCat(null);
+      setCatName('');
+    } catch (err: any) {
+      setError('Erro ao salvar categoria: ' + err.message);
+    }
+  };
+
+  const handleUnitSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingUnit) return;
+    try {
+      await onUpdateUnit(editingUnit.id, unitName.toUpperCase());
+      setIsUnitModalOpen(false);
+      setEditingUnit(null);
+      setUnitName('');
+    } catch (err: any) {
+      setError('Erro ao salvar unidade: ' + err.message);
+    }
+  };
+
+  const handleDeleteCat = async () => {
+    if (!isDeletingCat) return;
+    try {
+      await onDeleteCategory(isDeletingCat.id);
+      setIsDeletingCat(null);
+    } catch (err: any) {
+      setError('Erro ao excluir categoria: ' + err.message);
+    }
+  };
+
+  const handleDeleteUnit = async () => {
+    if (!isDeletingUnit) return;
+    try {
+      await onDeleteUnit(isDeletingUnit.id);
+      setIsDeletingUnit(null);
+    } catch (err: any) {
+      setError('Erro ao excluir unidade: ' + err.message);
     }
   };
 
@@ -293,6 +383,84 @@ export const Settings = ({ users, onAddUser, onUpdateUser, onDeleteUser }: Setti
         </Card>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Categories Management */}
+          <Card className="p-6">
+            <div className="flex items-center gap-4 mb-6">
+              <div className="w-12 h-12 bg-zinc-100 dark:bg-zinc-800 rounded-2xl flex items-center justify-center flex-shrink-0">
+                <Plus className="text-zinc-900 dark:text-zinc-100" size={24} />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold uppercase">Categorias</h3>
+                <p className="text-sm text-zinc-500 dark:text-zinc-400 uppercase">Gerencie as categorias de produtos.</p>
+              </div>
+            </div>
+            <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2">
+              {categories.map((cat) => (
+                <div key={cat.id} className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-900/50 rounded-xl border border-zinc-100 dark:border-zinc-800 group">
+                  <span className="text-sm font-medium uppercase">{cat.name}</span>
+                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button 
+                      onClick={() => {
+                        setEditingCat(cat);
+                        setCatName(cat.name);
+                        setIsCatModalOpen(true);
+                      }}
+                      className="p-1.5 text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
+                    >
+                      <Edit size={14} />
+                    </button>
+                    <button 
+                      onClick={() => setIsDeletingCat(cat)}
+                      className="p-1.5 text-zinc-400 hover:text-rose-600"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+
+          {/* Units Management */}
+          <Card className="p-6">
+            <div className="flex items-center gap-4 mb-6">
+              <div className="w-12 h-12 bg-zinc-100 dark:bg-zinc-800 rounded-2xl flex items-center justify-center flex-shrink-0">
+                <Plus className="text-zinc-900 dark:text-zinc-100" size={24} />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold uppercase">Unidades</h3>
+                <p className="text-sm text-zinc-500 dark:text-zinc-400 uppercase">Gerencie as unidades de medida.</p>
+              </div>
+            </div>
+            <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2">
+              {units.map((unit) => (
+                <div key={unit.id} className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-900/50 rounded-xl border border-zinc-100 dark:border-zinc-800 group">
+                  <span className="text-sm font-medium uppercase">{unit.name}</span>
+                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button 
+                      onClick={() => {
+                        setEditingUnit(unit);
+                        setUnitName(unit.name);
+                        setIsUnitModalOpen(true);
+                      }}
+                      className="p-1.5 text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
+                    >
+                      <Edit size={14} />
+                    </button>
+                    <button 
+                      onClick={() => setIsDeletingUnit(unit)}
+                      className="p-1.5 text-zinc-400 hover:text-rose-600"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Card className="p-6">
           <div className="flex items-start gap-4">
             <div className="w-12 h-12 bg-zinc-100 dark:bg-zinc-800 rounded-2xl flex items-center justify-center flex-shrink-0">
@@ -355,6 +523,33 @@ export const Settings = ({ users, onAddUser, onUpdateUser, onDeleteUser }: Setti
           </div>
         </Card>
       </div>
+
+      <Card className="max-w-4xl p-6 border-rose-100 dark:border-rose-900/30 bg-rose-50/30 dark:bg-rose-900/10 mt-6">
+        <div className="flex items-start gap-4">
+          <div className="w-12 h-12 bg-rose-100 dark:bg-rose-900/50 rounded-2xl flex items-center justify-center flex-shrink-0">
+            <Trash2 className="text-rose-600 dark:text-rose-400" size={24} />
+          </div>
+          <div className="flex-1">
+            <h3 className="text-lg font-bold mb-1 uppercase text-rose-600 dark:text-rose-400">Zona de Perigo: Reset Total</h3>
+            <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-6 uppercase">
+              Esta ação irá apagar permanentemente todos os produtos, movimentações, clientes, fornecedores e ordens. <span className="font-bold">NÃO PODE SER DESFEITO.</span>
+            </p>
+            
+            <button
+              onClick={() => setShowConfirmReset(true)}
+              disabled={isResetting}
+              className="flex items-center gap-2 px-4 py-2 bg-rose-600 text-white rounded-xl font-bold text-sm hover:bg-rose-700 transition-colors disabled:opacity-50 uppercase"
+            >
+              {isResetting ? (
+                <Loader2 className="animate-spin" size={18} />
+              ) : (
+                <Trash2 size={18} />
+              )}
+              {isResetting ? 'RESETANDO...' : 'APAGAR TUDO E REINICIAR BANCO'}
+            </button>
+          </div>
+        </div>
+      </Card>
     </div>
 
     <Modal 
@@ -444,6 +639,80 @@ export const Settings = ({ users, onAddUser, onUpdateUser, onDeleteUser }: Setti
         cancelText="CANCELAR"
         variant="danger"
         isLoading={isImporting}
+      />
+
+      <ConfirmModal 
+        isOpen={showConfirmReset}
+        onClose={() => setShowConfirmReset(false)}
+        onConfirm={handleResetDatabase}
+        title="RESET TOTAL DO BANCO"
+        message="VOCÊ TEM CERTEZA? TODOS OS DADOS (PRODUTOS, CLIENTES, ORDENS, ETC.) SERÃO APAGADOS PERMANENTEMENTE. ESTA AÇÃO É IRREVERSÍVEL."
+        confirmText="SIM, APAGAR TUDO"
+        cancelText="CANCELAR"
+        variant="danger"
+        isLoading={isResetting}
+      />
+
+      {/* Category Edit Modal */}
+      <Modal 
+        isOpen={isCatModalOpen} 
+        onClose={() => setIsCatModalOpen(false)} 
+        title="EDITAR CATEGORIA"
+      >
+        <form onSubmit={handleCatSubmit} className="p-6 space-y-4">
+          <Input 
+            label="Nome da Categoria"
+            value={catName}
+            onChange={(e: any) => setCatName(e.target.value.toUpperCase())}
+            placeholder="EX: ELÉTRICA"
+            required
+          />
+          <div className="flex justify-end gap-3 pt-4">
+            <Button variant="secondary" onClick={() => setIsCatModalOpen(false)}>Cancelar</Button>
+            <Button type="submit">Salvar Categoria</Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Unit Edit Modal */}
+      <Modal 
+        isOpen={isUnitModalOpen} 
+        onClose={() => setIsUnitModalOpen(false)} 
+        title="EDITAR UNIDADE"
+      >
+        <form onSubmit={handleUnitSubmit} className="p-6 space-y-4">
+          <Input 
+            label="Nome da Unidade"
+            value={unitName}
+            onChange={(e: any) => setUnitName(e.target.value.toUpperCase())}
+            placeholder="EX: KG"
+            required
+          />
+          <div className="flex justify-end gap-3 pt-4">
+            <Button variant="secondary" onClick={() => setIsUnitModalOpen(false)}>Cancelar</Button>
+            <Button type="submit">Salvar Unidade</Button>
+          </div>
+        </form>
+      </Modal>
+
+      <ConfirmModal 
+        isOpen={!!isDeletingCat}
+        onClose={() => setIsDeletingCat(null)}
+        onConfirm={handleDeleteCat}
+        title="EXCLUIR CATEGORIA"
+        message={`Tem certeza que deseja excluir a categoria ${isDeletingCat?.name}?`}
+        confirmText="EXCLUIR"
+        variant="danger"
+      />
+
+      <ConfirmModal 
+        isOpen={!!isDeletingUnit}
+        onClose={() => setIsDeletingUnit(null)}
+        onConfirm={handleDeleteUnit}
+        title="EXCLUIR UNIDADE"
+        message={`Tem certeza que deseja excluir a unidade ${isDeletingUnit?.name}?`}
+        confirmText="EXCLUIR"
+        variant="danger"
       />
     </div>
   );

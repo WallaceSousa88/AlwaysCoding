@@ -620,7 +620,10 @@ export const StockInModal = ({
                   onChange={(e: any) => setStockInData({...stockInData, supplier_id: e.target.value})}
                   options={[
                     { value: '', label: 'SELECIONE' },
-                    ...suppliers.map((s: Supplier) => ({ value: s.id.toString(), label: s.name.toUpperCase() }))
+                    ...suppliers.map((s: Supplier) => ({ 
+                      value: s.id.toString(), 
+                      label: (s.tipo === 'PF' ? s.name : s.razao_social || 'SEM NOME')?.toUpperCase() || 'SEM NOME'
+                    }))
                   ]}
                   error={fieldErrors.supplier_id}
                 />
@@ -650,21 +653,15 @@ export const StockInModal = ({
                   <input 
                     type="file" 
                     multiple
-                    accept=".pdf"
+                    accept=".pdf,image/webp"
                     className="hidden"
                     id="invoice-upload"
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                       const files = Array.from(e.target.files || []);
-                      files.forEach((file: File) => {
-                        const reader = new FileReader();
-                        reader.onloadend = () => {
-                          setStockInData((prev: any) => ({
-                            ...prev,
-                            invoices: [...(prev.invoices || []), { name: file.name, data: reader.result as string }]
-                          }));
-                        };
-                        reader.readAsDataURL(file);
-                      });
+                      setStockInData((prev: any) => ({
+                        ...prev,
+                        invoices: [...(prev.invoices || []), ...files]
+                      }));
                       e.target.value = ''; // Reset input to allow same file selection
                     }}
                   />
@@ -673,7 +670,7 @@ export const StockInModal = ({
                     className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-lg text-zinc-500 hover:border-zinc-400 dark:hover:border-zinc-700 transition-colors cursor-pointer"
                   >
                     <FileText size={18} />
-                    <span>ADICIONAR PDF</span>
+                    <span>ADICIONAR ANEXO (PDF/WEBP)</span>
                   </label>
                 </div>
                 
@@ -1223,54 +1220,101 @@ export const ProductDetailModal = ({
                       <th className="px-4 py-2 text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Tipo</th>
                       <th className="px-4 py-2 text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Qtd</th>
                       <th className="px-4 py-2 text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">V. Unitário</th>
+                      <th className="px-4 py-2 text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Fornecedor</th>
                       <th className="px-4 py-2 text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Origem/Destino</th>
                       <th className="px-4 py-2 text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Doc/Motivo</th>
+                      <th className="px-4 py-2 text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">XML</th>
+                      <th className="px-4 py-2 text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Anexos</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
                     {isLoading ? (
                       <tr>
-                        <td colSpan={6} className="px-4 py-8 text-center text-zinc-400 dark:text-zinc-500 text-xs uppercase">CARREGANDO HISTÓRICO...</td>
+                        <td colSpan={9} className="px-4 py-8 text-center text-zinc-400 dark:text-zinc-500 text-xs uppercase">CARREGANDO HISTÓRICO...</td>
                       </tr>
                     ) : movements.length === 0 ? (
                       <tr>
-                        <td colSpan={6} className="px-4 py-8 text-center text-zinc-400 dark:text-zinc-500 text-xs uppercase">NENHUMA MOVIMENTAÇÃO ENCONTRADA.</td>
+                        <td colSpan={9} className="px-4 py-8 text-center text-zinc-400 dark:text-zinc-500 text-xs uppercase">NENHUMA MOVIMENTAÇÃO ENCONTRADA.</td>
                       </tr>
                     ) : (
-                      movements.map((m: Movement) => (
-                        <tr key={m.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors">
-                          <td className="px-4 py-3 text-xs text-zinc-500 dark:text-zinc-400">
-                            {new Date(m.date).toLocaleString('pt-BR', { 
-                              day: '2-digit', 
-                              month: '2-digit', 
-                              year: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })}
-                          </td>
-                          <td className="px-4 py-3">
-                            <span className={cn(
-                              "inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase",
-                              m.type === 'IN' 
-                                ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400" 
-                                : "bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400"
-                            )}>
-                              {m.type === 'IN' ? <ArrowDownLeft size={8} /> : <ArrowUpRight size={8} />}
-                              {m.type === 'IN' ? 'ENTRADA' : 'SAÍDA'}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 text-xs font-bold text-zinc-900 dark:text-zinc-100">{m.quantity}</td>
-                          <td className="px-4 py-3 text-xs text-zinc-500 dark:text-zinc-400">
-                            {m.unit_price > 0 ? `R$ ${m.unit_price.toFixed(2)}` : '-'}
-                          </td>
-                          <td className="px-4 py-3 text-xs text-zinc-500 dark:text-zinc-400 truncate max-w-[100px]">
-                            {m.type === 'IN' ? (m.supplier_name || m.location || '-') : (m.destination || '-')}
-                          </td>
-                          <td className="px-4 py-3 text-xs text-zinc-500 dark:text-zinc-400 truncate max-w-[100px]">
-                            {m.type === 'IN' ? (m.doc_number || '-') : (m.reason || '-')}
-                          </td>
-                        </tr>
-                      ))
+                      movements.map((m: Movement) => {
+                        let invoices = [];
+                        try {
+                          if (m.invoice_pdf) {
+                            invoices = JSON.parse(m.invoice_pdf);
+                          }
+                        } catch (e) {
+                          console.error("Error parsing invoices:", e);
+                        }
+
+                        return (
+                          <tr key={m.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors">
+                            <td className="px-4 py-3 text-xs text-zinc-500 dark:text-zinc-400">
+                              {(() => {
+                                try {
+                                  const d = new Date(m.date);
+                                  if (isNaN(d.getTime())) return '-';
+                                  return d.toLocaleString('pt-BR', { 
+                                    day: '2-digit', 
+                                    month: '2-digit', 
+                                    year: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                    timeZone: 'America/Sao_Paulo'
+                                  });
+                                } catch (e) {
+                                  return '-';
+                                }
+                              })()}
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className={cn(
+                                "inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase",
+                                m.type === 'IN' 
+                                  ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400" 
+                                  : "bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400"
+                              )}>
+                                {m.type === 'IN' ? <ArrowDownLeft size={8} /> : <ArrowUpRight size={8} />}
+                                {m.type === 'IN' ? 'ENTRADA' : 'SAÍDA'}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-xs font-bold text-zinc-900 dark:text-zinc-100">{m.quantity}</td>
+                            <td className="px-4 py-3 text-xs text-zinc-500 dark:text-zinc-400">
+                              {m.unit_price > 0 ? `R$ ${m.unit_price.toFixed(2)}` : '-'}
+                            </td>
+                            <td className="px-4 py-3 text-xs text-zinc-500 dark:text-zinc-400 truncate max-w-[100px]">
+                              {m.type === 'IN' ? (m.supplier_name || '-') : '-'}
+                            </td>
+                            <td className="px-4 py-3 text-xs text-zinc-500 dark:text-zinc-400 truncate max-w-[100px]">
+                              {m.type === 'IN' ? (m.location || '-') : (m.destination || '-')}
+                            </td>
+                            <td className="px-4 py-3 text-xs text-zinc-500 dark:text-zinc-400 truncate max-w-[100px]">
+                              {m.type === 'IN' ? (m.doc_number || '-') : (m.reason || '-')}
+                            </td>
+                            <td className="px-4 py-3 text-xs text-zinc-500 dark:text-zinc-400 truncate max-w-[100px]" title={m.xml}>
+                              {m.xml || '-'}
+                            </td>
+                            <td className="px-4 py-3 text-xs text-zinc-500 dark:text-zinc-400">
+                              <div className="flex flex-wrap gap-1">
+                                {invoices.map((inv: any, idx: number) => (
+                                  <a 
+                                    key={idx} 
+                                    href={inv.url} 
+                                    download={inv.name}
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="p-1 bg-zinc-100 dark:bg-zinc-800 rounded text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
+                                    title={inv.name}
+                                  >
+                                    <FileText size={12} />
+                                  </a>
+                                ))}
+                                {invoices.length === 0 && '-'}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })
                     )}
                   </tbody>
                 </table>

@@ -23,28 +23,49 @@ async function startServer() {
 
   app.use(express.json());
 
-  // API Routes for File Uploads (Still using local storage for now, can be migrated to Firebase Storage later)
-  app.post('/api/upload', upload.single('photo'), async (req: any, res: any) => {
-    if (!req.file) return res.status(400).json({ error: 'Nenhuma imagem enviada' });
+  // Health check
+  app.get('/api/health', (req, res) => {
+    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  });
+
+  // API Routes for File Uploads
+  app.post('/api/upload', (req, res, next) => {
+    console.log('Recebendo requisição de upload...');
+    next();
+  }, upload.single('file'), async (req: any, res: any) => {
+    console.log('Arquivo recebido:', req.file ? req.file.originalname : 'Nenhum');
+    if (!req.file) return res.status(400).json({ error: 'Nenhum arquivo enviado' });
 
     try {
-      const fileName = `photo_${Date.now()}.webp`;
+      const isImage = req.file.mimetype.startsWith('image/');
+      const extension = path.extname(req.file.originalname) || (isImage ? '.webp' : '');
+      const fileName = `file_${Date.now()}${isImage ? '.webp' : extension}`;
       const filePath = path.join(uploadsDir, fileName);
 
-      await sharp(req.file.buffer)
-        .resize(800, 800, { fit: 'inside', withoutEnlargement: true })
-        .webp({ quality: 80 })
-        .toFile(filePath);
+      if (isImage) {
+        await sharp(req.file.buffer)
+          .resize(1200, 1200, { fit: 'inside', withoutEnlargement: true })
+          .webp({ quality: 80 })
+          .toFile(filePath);
+      } else {
+        fs.writeFileSync(filePath, req.file.buffer);
+      }
 
       res.json({ url: `/uploads/${fileName}` });
     } catch (error) {
       console.error('Erro no upload:', error);
-      res.status(500).json({ error: 'Erro ao processar imagem' });
+      res.status(500).json({ error: 'Erro ao processar arquivo' });
     }
   });
 
   // Serve uploads folder
   app.use('/uploads', express.static(uploadsDir));
+
+  // Global error handler for API routes
+  app.use('/api', (err: any, req: any, res: any, next: any) => {
+    console.error('API Error:', err);
+    res.status(500).json({ error: err.message || 'Erro interno no servidor' });
+  });
 
   // Vite middleware for development
   if (process.env.NODE_ENV !== 'production') {

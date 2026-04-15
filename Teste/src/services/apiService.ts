@@ -42,6 +42,45 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
   throw new Error(JSON.stringify(errInfo));
 }
 
+async function isDuplicate(collectionName: string, data: any) {
+  try {
+    const collRef = collection(db, collectionName);
+    let q = query(collRef);
+    
+    // Build query with all fields
+    // Note: We skip fields that are objects/arrays as Firestore 'where' has limitations there
+    // and we skip fields that are likely to be unique like timestamps if they were already added
+    Object.keys(data).forEach(key => {
+      const value = data[key];
+      if (value !== undefined && value !== null && typeof value !== 'object' && key !== 'created_at') {
+        q = query(q, where(key, '==', value));
+      }
+    });
+
+    const snap = await getDocs(q);
+    
+    // If we have potential matches, we do a deeper check for objects/arrays if necessary
+    if (!snap.empty) {
+      return snap.docs.some(doc => {
+        const docData = doc.data();
+        return Object.keys(data).every(key => {
+          if (key === 'created_at') return true;
+          const val1 = data[key];
+          const val2 = docData[key];
+          if (typeof val1 === 'object' && val1 !== null) {
+            return JSON.stringify(val1) === JSON.stringify(val2);
+          }
+          return val1 === val2;
+        });
+      });
+    }
+    return false;
+  } catch (error) {
+    console.error(`Error checking duplicate in ${collectionName}:`, error);
+    return false; // Fallback to allow if check fails
+  }
+}
+
 import firebaseConfig from '../../firebase-applet-config.json';
 
 const FIREBASE_API_KEY = firebaseConfig.apiKey;
@@ -133,11 +172,11 @@ export const apiService = {
   },
 
   // Uploads
-  uploadPhoto: async (file: File | string) => {
+  uploadFile: async (file: File | string) => {
     if (typeof file === 'string') return file; // Already a URL or base64
 
     const formData = new FormData();
-    formData.append('photo', file);
+    formData.append('file', file);
 
     const response = await fetch('/api/upload', {
       method: 'POST',
@@ -145,11 +184,24 @@ export const apiService = {
     });
 
     if (!response.ok) {
-      throw new Error('Erro ao fazer upload da imagem');
+      const text = await response.text();
+      console.error('Upload failed response:', text);
+      throw new Error('Erro ao fazer upload do arquivo');
+    }
+
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      const text = await response.text();
+      console.error('Expected JSON but got:', text);
+      throw new Error('Servidor retornou formato inválido');
     }
 
     const result = await response.json();
     return result.url;
+  },
+
+  uploadPhoto: async (file: File | string) => {
+    return apiService.uploadFile(file);
   },
 
   // Products
@@ -182,6 +234,10 @@ export const apiService = {
           quantity: 0,
           photo: photoUrl
         };
+      }
+
+      if (await isDuplicate('products', productData)) {
+        throw new Error('Este produto já está cadastrado com os mesmos dados.');
       }
 
       const docRef = await addDoc(collection(db, 'products'), productData);
@@ -264,6 +320,9 @@ export const apiService = {
   },
   addOrder: async (data: any) => {
     try {
+      if (await isDuplicate('orders', data)) {
+        throw new Error('Esta ordem já está cadastrada com os mesmos dados.');
+      }
       const docRef = await addDoc(collection(db, 'orders'), {
         ...data,
         created_at: serverTimestamp()
@@ -320,6 +379,9 @@ export const apiService = {
   },
   addServiceEntry: async (data: any) => {
     try {
+      if (await isDuplicate('service_entries', data)) {
+        throw new Error('Esta entrada de serviço já está cadastrada com os mesmos dados.');
+      }
       const docRef = await addDoc(collection(db, 'service_entries'), {
         ...data,
         date: serverTimestamp(),
@@ -358,6 +420,9 @@ export const apiService = {
   },
   addClient: async (data: any) => {
     try {
+      if (await isDuplicate('clients', data)) {
+        throw new Error('Este cliente já está cadastrado com os mesmos dados.');
+      }
       const docRef = await addDoc(collection(db, 'clients'), data);
       return { id: docRef.id };
     } catch (error) {
@@ -392,6 +457,9 @@ export const apiService = {
   },
   addSupplier: async (data: any) => {
     try {
+      if (await isDuplicate('suppliers', data)) {
+        throw new Error('Este fornecedor já está cadastrado com os mesmos dados.');
+      }
       const docRef = await addDoc(collection(db, 'suppliers'), data);
       return { id: docRef.id, ...data };
     } catch (error) {
@@ -426,6 +494,9 @@ export const apiService = {
   },
   addLocation: async (name: string) => {
     try {
+      if (await isDuplicate('locations', { name })) {
+        throw new Error('Esta localização já está cadastrada.');
+      }
       const docRef = await addDoc(collection(db, 'locations'), { name });
       return { id: docRef.id, name };
     } catch (error) {
@@ -452,6 +523,9 @@ export const apiService = {
   },
   addCategory: async (name: string) => {
     try {
+      if (await isDuplicate('categories', { name })) {
+        throw new Error('Esta categoria já está cadastrada.');
+      }
       const docRef = await addDoc(collection(db, 'categories'), { name });
       return { id: docRef.id, name };
     } catch (error) {
@@ -464,6 +538,14 @@ export const apiService = {
       return { success: true };
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `categories/${id}`);
+    }
+  },
+  deleteCategory: async (id: string | number) => {
+    try {
+      await deleteDoc(doc(db, 'categories', String(id)));
+      return { success: true };
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, `categories/${id}`);
     }
   },
 
@@ -492,7 +574,7 @@ export const apiService = {
         });
 
         try {
-          await addDoc(collection(db, 'products'), {
+          const productData = {
             name: product.name || 'SEM NOME',
             category: product.category || 'GERAL',
             unit: product.unit || 'UN',
@@ -500,7 +582,14 @@ export const apiService = {
             min_quantity: parseFloat(product.min_quantity) || 0,
             quantity: parseFloat(product.quantity) || 0,
             photo: ''
-          });
+          };
+
+          if (await isDuplicate('products', productData)) {
+            errors.push(`Linha ${i + 1}: Produto já cadastrado.`);
+            continue;
+          }
+
+          await addDoc(collection(db, 'products'), productData);
           imported++;
         } catch (e: any) {
           errors.push(`Linha ${i + 1}: ${e.message}`);
@@ -513,10 +602,29 @@ export const apiService = {
   },
   addUnit: async (name: string) => {
     try {
+      if (await isDuplicate('units', { name })) {
+        throw new Error('Esta unidade já está cadastrada.');
+      }
       const docRef = await addDoc(collection(db, 'units'), { name });
       return { id: docRef.id, name };
     } catch (error) {
       handleFirestoreError(error, OperationType.CREATE, 'units');
+    }
+  },
+  updateUnit: async (id: string | number, name: string) => {
+    try {
+      await updateDoc(doc(db, 'units', String(id)), { name });
+      return { success: true };
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `units/${id}`);
+    }
+  },
+  deleteUnit: async (id: string | number) => {
+    try {
+      await deleteDoc(doc(db, 'units', String(id)));
+      return { success: true };
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, `units/${id}`);
     }
   },
 
@@ -552,6 +660,10 @@ export const apiService = {
           status: 'ATIVO',
           photo: photoUrl
         };
+      }
+
+      if (await isDuplicate('assets', assetData)) {
+        throw new Error('Este patrimônio já está cadastrado com os mesmos dados.');
       }
 
       const docRef = await addDoc(collection(db, 'assets'), assetData);
@@ -616,10 +728,22 @@ export const apiService = {
       const snap = await getDocs(query(collection(db, 'movements'), orderBy('date', 'desc')));
       return snap.docs.map(d => {
         const data = d.data();
+        let date = data.date;
+        
+        if (date instanceof Timestamp) {
+          date = date.toDate().toISOString();
+        } else if (!date && data.issue_date) {
+          // Fallback to issue_date if date is missing
+          date = data.issue_date;
+        } else if (!date) {
+          // Final fallback to current date to avoid 1969
+          date = new Date().toISOString();
+        }
+
         return {
           ...data,
           id: d.id,
-          date: data.date instanceof Timestamp ? data.date.toDate().toISOString() : data.date
+          date
         };
       }) as any;
     } catch (error) {
@@ -628,6 +752,9 @@ export const apiService = {
   },
   stockIn: async (data: any) => {
     try {
+      if (await isDuplicate('movements', { ...data, type: 'IN' })) {
+        throw new Error('Esta entrada de estoque já foi registrada.');
+      }
       await runTransaction(db, async (transaction) => {
         const productRef = doc(db, 'products', data.product_id);
         const productSnap = await transaction.get(productRef);
@@ -660,6 +787,9 @@ export const apiService = {
   },
   stockOut: async (data: any) => {
     try {
+      if (await isDuplicate('movements', { ...data, type: 'OUT' })) {
+        throw new Error('Esta saída de estoque já foi registrada.');
+      }
       await runTransaction(db, async (transaction) => {
         const productRef = doc(db, 'products', data.product_id);
         const productSnap = await transaction.get(productRef);
@@ -693,10 +823,20 @@ export const apiService = {
       const snap = await getDocs(query(collection(db, 'movements'), where('type', '==', 'IN'), orderBy('date', 'desc')));
       return snap.docs.map(d => {
         const data = d.data();
+        let date = data.date;
+        
+        if (date instanceof Timestamp) {
+          date = date.toDate().toISOString();
+        } else if (!date && data.issue_date) {
+          date = data.issue_date;
+        } else if (!date) {
+          date = new Date().toISOString();
+        }
+
         return {
           ...data,
           id: d.id,
-          date: data.date instanceof Timestamp ? data.date.toDate().toISOString() : data.date
+          date
         };
       });
     } catch (error) {
@@ -710,14 +850,53 @@ export const apiService = {
       const snap = await getDocs(query(collection(db, 'audit_logs'), orderBy('created_at', 'desc')));
       return snap.docs.map(d => {
         const data = d.data();
+        let created_at = data.created_at;
+        
+        if (created_at instanceof Timestamp) {
+          created_at = created_at.toDate().toISOString();
+        } else if (!created_at) {
+          created_at = new Date().toISOString();
+        }
+
         return {
           ...data,
           id: d.id,
-          created_at: data.created_at instanceof Timestamp ? data.created_at.toDate().toISOString() : data.created_at
+          created_at
         };
       });
     } catch (error) {
       handleFirestoreError(error, OperationType.LIST, 'audit_logs');
+    }
+  },
+  createAuditLog: async (action: string, details: string, userName?: string) => {
+    try {
+      await addDoc(collection(db, 'audit_logs'), {
+        user_id: auth.currentUser?.uid || 'system',
+        user_name: userName || auth.currentUser?.email || 'Sistema',
+        action,
+        details,
+        created_at: serverTimestamp()
+      });
+    } catch (error) {
+      console.error('Error creating audit log:', error);
+      // Don't throw here to avoid breaking the main operation
+    }
+  },
+  resetDatabase: async () => {
+    const collectionsToClear = [
+      'products', 'movements', 'clients', 'suppliers', 
+      'assets', 'orders', 'categories', 'locations', 
+      'units', 'audit_logs', 'service_entries'
+    ];
+
+    for (const collName of collectionsToClear) {
+      try {
+        const snap = await getDocs(collection(db, collName));
+        const deletePromises = snap.docs.map(doc => deleteDoc(doc.ref));
+        await Promise.all(deletePromises);
+      } catch (error) {
+        console.error(`Error clearing collection ${collName}:`, error);
+      }
     }
   },
   importDatabase: async (file: File) => {
@@ -737,6 +916,13 @@ export const apiService = {
   },
   addUser: async (data: any) => {
     try {
+      // Check for duplicate username
+      const q = query(collection(db, 'users'), where('username', '==', data.username));
+      const snap = await getDocs(q);
+      if (!snap.empty) {
+        throw new Error('Este nome de usuário já está em uso.');
+      }
+
       const docRef = await addDoc(collection(db, 'users'), data);
       
       // Sync with Auth via REST API (doesn't require admin SDK)

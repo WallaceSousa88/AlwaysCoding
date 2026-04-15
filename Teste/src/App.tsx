@@ -277,6 +277,10 @@ export default function App() {
   const userPermissions = isAdmin
     ? ['dashboard', 'kanban', 'service_entry', 'production', 'clients', 'suppliers', 'assets', 'inventory', 'financial', 'audit', 'settings']
     : (currentUserProfile?.permissions || []);
+  
+  const logAction = async (action: string, details: string) => {
+    await apiService.createAuditLog(action, details, currentUserProfile?.name || user?.email || undefined);
+  };
 
   const sidebarItems = [
     { id: 'dashboard', icon: LayoutDashboard, label: "Painel" },
@@ -580,7 +584,21 @@ export default function App() {
       setCategories(categoriesData || []);
       setLocations(locationsData || []);
       setUnits(unitsData || []);
-      setMovements(movementsData || []);
+      const movements = movementsData || [];
+      setMovements(movements);
+      
+      // Populate financial entries from IN movements
+      const financial = movements
+        .filter((m: any) => m.type === 'IN')
+        .map((m: any) => {
+          const product = (productsData || []).find((p: any) => p.id.toString() === m.product_id.toString());
+          return {
+            ...m,
+            product_name: product ? product.name : 'PRODUTO NÃO ENCONTRADO'
+          };
+        });
+      setFinancialEntries(financial);
+
       setAuditLogs(auditLogsData || []);
       setSystemUsers(usersData || []);
       setServiceEntries(serviceEntriesData || []);
@@ -637,6 +655,7 @@ export default function App() {
       }
 
       await apiService.patchOrder(id, { status });
+      logAction('ATUALIZAR STATUS ORDEM', `ORDEM: ${order?.title || id}, NOVO STATUS: ${status}`);
       fetchData();
     } catch (err) {
       console.error('Error updating order:', err);
@@ -646,6 +665,7 @@ export default function App() {
   const addOrder = async (data: any) => {
     try {
       await apiService.addOrder(data);
+      logAction('ADICIONAR ORDEM', `ORDEM: ${data.title}`);
       fetchData();
     } catch (err) {
       console.error('Error adding order:', err);
@@ -655,6 +675,7 @@ export default function App() {
   const updateOrder = async (id: string | number, data: any) => {
     try {
       await apiService.updateOrder(id, data);
+      logAction('ATUALIZAR ORDEM', `ORDEM: ${data.title || id}`);
       fetchData();
     } catch (err) {
       console.error('Error updating order:', err);
@@ -663,7 +684,9 @@ export default function App() {
 
   const deleteOrder = async (id: string | number) => {
     try {
+      const order = orders.find(o => o.id === id);
       await apiService.deleteOrder(id);
+      logAction('EXCLUIR ORDEM', `ORDEM: ${order?.title || id}`);
       fetchData();
     } catch (err) {
       console.error('Error deleting order:', err);
@@ -688,6 +711,7 @@ export default function App() {
 
     try {
       await apiService.addClient(data);
+      logAction('ADICIONAR CLIENTE', `CLIENTE: ${data.name || data.razao_social}`);
       fetchData();
       setIsClientModalOpen(false);
       setClientFieldErrors({});
@@ -707,6 +731,7 @@ export default function App() {
 
     try {
       await apiService.updateClient(id, data);
+      logAction('ATUALIZAR CLIENTE', `CLIENTE: ${data.name || data.razao_social}`);
       fetchData();
       setIsClientModalOpen(false);
       setClientFieldErrors({});
@@ -718,7 +743,9 @@ export default function App() {
 
   const deleteClient = async (id: string | number) => {
     try {
+      const client = clients.find(c => c.id === id);
       await apiService.deleteClient(id);
+      logAction('EXCLUIR CLIENTE', `CLIENTE: ${client?.name || client?.razao_social || id}`);
       fetchData();
     } catch (err) {
       console.error('Error deleting client:', err);
@@ -743,6 +770,7 @@ export default function App() {
 
     try {
       await apiService.updateSupplier(id, data);
+      logAction('ATUALIZAR FORNECEDOR', `FORNECEDOR: ${data.name || data.razao_social}`);
       fetchData();
       setIsSupplierModalOpen(false);
       setSupplierFieldErrors({});
@@ -754,7 +782,9 @@ export default function App() {
 
   const deleteSupplier = async (id: string | number) => {
     try {
+      const supplier = suppliers.find(s => s.id === id);
       await apiService.deleteSupplier(id);
+      logAction('EXCLUIR FORNECEDOR', `FORNECEDOR: ${supplier?.name || supplier?.razao_social || id}`);
       fetchData();
     } catch (err) {
       console.error('Error deleting supplier:', err);
@@ -783,6 +813,7 @@ export default function App() {
 
     try {
       await apiService.addAsset(formData);
+      logAction('ADICIONAR PATRIMÔNIO', `PATRIMÔNIO: ${formData.get('description')}`);
       fetchData();
       setIsAssetModalOpen(false);
     } catch (err) {
@@ -804,6 +835,7 @@ export default function App() {
 
     try {
       await apiService.updateAsset(id, formData);
+      logAction('ATUALIZAR PATRIMÔNIO', `PATRIMÔNIO: ${formData.get('description')}`);
       fetchData();
       setIsAssetModalOpen(false);
       setEditingAsset(null);
@@ -814,7 +846,9 @@ export default function App() {
 
   const handleDisposalAsset = async (id: string | number, data: any) => {
     try {
+      const asset = assets.find(a => a.id === id);
       await apiService.disposalAsset(id, data);
+      logAction('BAIXA DE PATRIMÔNIO', `PATRIMÔNIO: ${asset?.description || id}, TIPO: ${data.disposal_type}`);
       fetchData();
     } catch (err) {
       console.error('Error in asset disposal:', err);
@@ -823,7 +857,9 @@ export default function App() {
 
   const deleteAsset = async (id: string | number) => {
     try {
+      const asset = assets.find(a => a.id === id);
       await apiService.deleteAsset(id);
+      logAction('EXCLUIR PATRIMÔNIO', `PATRIMÔNIO: ${asset?.description || id}`);
       fetchData();
     } catch (err) {
       console.error('Error deleting asset:', err);
@@ -841,6 +877,7 @@ export default function App() {
   const addServiceEntry = async (data: any) => {
     try {
       await apiService.addServiceEntry(data);
+      logAction('ADICIONAR ENTRADA DE SERVIÇO', `CLIENTE: ${data.client_name}, OBRA: ${data.obra}, VALOR: R$ ${data.valor}`);
       fetchData();
     } catch (err) {
       console.error('Error adding service entry:', err);
@@ -850,6 +887,7 @@ export default function App() {
   const updateServiceEntry = async (id: string | number, data: any) => {
     try {
       await apiService.updateServiceEntry(id, data);
+      logAction('ATUALIZAR ENTRADA DE SERVIÇO', `CLIENTE: ${data.client_name}, OBRA: ${data.obra}, VALOR: R$ ${data.valor}`);
       fetchData();
     } catch (err) {
       console.error('Error updating service entry:', err);
@@ -858,7 +896,9 @@ export default function App() {
 
   const deleteServiceEntry = async (id: string | number) => {
     try {
+      const entry = serviceEntries.find(e => e.id === id);
       await apiService.deleteServiceEntry(id);
+      logAction('EXCLUIR ENTRADA DE SERVIÇO', `CLIENTE: ${entry?.client_name}, OBRA: ${entry?.obra}`);
       fetchData();
     } catch (err) {
       console.error('Error deleting service entry:', err);
@@ -868,6 +908,7 @@ export default function App() {
   const addProduct = async (formData: FormData) => {
     try {
       await apiService.addProduct(formData);
+      logAction('ADICIONAR PRODUTO', `PRODUTO: ${formData.get('name')}`);
       fetchData();
     } catch (err: any) {
       setGlobalError(err.message || 'Erro ao adicionar produto');
@@ -878,6 +919,7 @@ export default function App() {
   const addCategory = async (name: string) => {
     try {
       await apiService.addCategory(name);
+      logAction('ADICIONAR CATEGORIA', `CATEGORIA: ${name}`);
       fetchData();
     } catch (err) {
       console.error('Error adding category:', err);
@@ -887,6 +929,7 @@ export default function App() {
   const addUnit = async (name: string) => {
     try {
       await apiService.addUnit(name);
+      logAction('ADICIONAR UNIDADE', `UNIDADE: ${name}`);
       fetchData();
     } catch (err) {
       console.error('Error adding unit:', err);
@@ -896,9 +939,42 @@ export default function App() {
   const updateCategory = async (id: string | number, name: string) => {
     try {
       await apiService.updateCategory(id, name);
+      logAction('ATUALIZAR CATEGORIA', `CATEGORIA: ${name}`);
       fetchData();
     } catch (err) {
       console.error('Error updating category:', err);
+    }
+  };
+
+  const deleteCategory = async (id: string | number) => {
+    try {
+      const category = categories.find(c => c.id === id);
+      await apiService.deleteCategory(id);
+      logAction('EXCLUIR CATEGORIA', `CATEGORIA: ${category?.name || id}`);
+      fetchData();
+    } catch (err) {
+      console.error('Error deleting category:', err);
+    }
+  };
+
+  const updateUnit = async (id: string | number, name: string) => {
+    try {
+      await apiService.updateUnit(id, name);
+      logAction('ATUALIZAR UNIDADE', `UNIDADE: ${name}`);
+      fetchData();
+    } catch (err) {
+      console.error('Error updating unit:', err);
+    }
+  };
+
+  const deleteUnit = async (id: string | number) => {
+    try {
+      const unit = units.find(u => u.id === id);
+      await apiService.deleteUnit(id);
+      logAction('EXCLUIR UNIDADE', `UNIDADE: ${unit?.name || id}`);
+      fetchData();
+    } catch (err) {
+      console.error('Error deleting unit:', err);
     }
   };
 
@@ -922,6 +998,7 @@ export default function App() {
       }
 
       await apiService.addSupplier(payload);
+      logAction('ADICIONAR FORNECEDOR', `FORNECEDOR: ${payload.name || payload.razao_social}`);
       fetchData();
       setIsSupplierModalOpen(false);
       setSupplierFieldErrors({});
@@ -934,6 +1011,7 @@ export default function App() {
   const addLocation = async (name: string) => {
     try {
       await apiService.addLocation(name);
+      logAction('ADICIONAR LOCALIZAÇÃO', `LOCALIZAÇÃO: ${name}`);
       fetchData();
     } catch (err) {
       console.error('Error adding location:', err);
@@ -951,20 +1029,43 @@ export default function App() {
 
   const handleStockIn = async (data: any) => {
     try {
+      const product = products.find(p => p.id === parseInt(data.product_id));
+      
+      // Upload invoices if they are File objects
+      let invoiceUrls = [];
+      if (data.invoices && data.invoices.length > 0) {
+        for (const file of data.invoices) {
+          if (file instanceof File) {
+            const url = await apiService.uploadFile(file);
+            invoiceUrls.push({ name: file.name, url });
+          } else {
+            // If it's already an object with name and url/data (though in this flow it should be File)
+            invoiceUrls.push(file);
+          }
+        }
+      }
+
       const submissionData = {
         ...data,
-        invoice_pdf: data.invoices && data.invoices.length > 0 ? JSON.stringify(data.invoices) : ''
+        invoice_pdf: invoiceUrls.length > 0 ? JSON.stringify(invoiceUrls) : ''
       };
+      // Remove the raw File objects from submissionData
+      delete (submissionData as any).invoices;
+
       await apiService.stockIn(submissionData);
+      logAction('ENTRADA DE ESTOQUE', `PRODUTO: ${product?.name || data.product_id}, QTD: ${data.quantity}`);
       fetchData();
-    } catch (err) {
+    } catch (err: any) {
+      setGlobalError(err.message || 'Erro ao processar entrada de estoque');
       console.error('Error in stock in:', err);
     }
   };
 
   const handleStockOut = async (data: any) => {
     try {
+      const product = products.find(p => p.id === parseInt(data.product_id));
       await apiService.stockOut(data);
+      logAction('SAÍDA DE ESTOQUE', `PRODUTO: ${product?.name || data.product_id}, QTD: ${data.quantity}, MOTIVO: ${data.reason}`);
       fetchData();
     } catch (err: any) {
       setGlobalError(err.message || 'Erro ao processar saída');
@@ -975,6 +1076,7 @@ export default function App() {
   const handleUpdateProduct = async (id: string | number, formData: FormData) => {
     try {
       await apiService.updateProduct(id, formData);
+      logAction('ATUALIZAR PRODUTO', `PRODUTO: ${formData.get('name')}`);
       fetchData();
     } catch (err: any) {
       setGlobalError(err.message || 'Erro ao atualizar produto');
@@ -984,7 +1086,9 @@ export default function App() {
 
   const deleteProduct = async (id: string | number) => {
     try {
+      const product = products.find(p => p.id === id);
       await apiService.deleteProduct(id);
+      logAction('EXCLUIR PRODUTO', `PRODUTO: ${product?.name || id}`);
       fetchData();
     } catch (err: any) {
       setGlobalError(err.message || 'Erro ao excluir produto');
@@ -1226,6 +1330,8 @@ export default function App() {
       case 'settings': return (
         <SettingsView 
           users={systemUsers}
+          categories={categories}
+          units={units}
           onAddUser={async (data) => {
             await apiService.addUser(data);
             fetchData();
@@ -1238,6 +1344,10 @@ export default function App() {
             await apiService.deleteUser(id);
             fetchData();
           }}
+          onUpdateCategory={updateCategory}
+          onDeleteCategory={deleteCategory}
+          onUpdateUnit={updateUnit}
+          onDeleteUnit={deleteUnit}
         />
       );
       default: return <div className="flex items-center justify-center h-64 text-zinc-400">Em desenvolvimento...</div>;

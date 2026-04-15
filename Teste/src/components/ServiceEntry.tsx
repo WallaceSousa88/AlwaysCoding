@@ -77,7 +77,15 @@ export const ServiceEntry = ({
           { 
             key: 'date', 
             label: 'DATA',
-            render: (val) => new Date(val).toLocaleDateString('pt-BR')
+            render: (val) => {
+              try {
+                const d = new Date(val);
+                if (isNaN(d.getTime())) return '-';
+                return d.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+              } catch (e) {
+                return '-';
+              }
+            }
           },
           { key: 'client_name', label: 'CLIENTE' },
           { key: 'obra', label: 'OBRA' },
