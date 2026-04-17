@@ -16,6 +16,7 @@ import {
 } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { Product, Client, Supplier, Asset, Order, Movement, OrderStatus } from '../types';
+import { convertPdfToWebP } from '../lib/pdfUtils';
 
 enum OperationType {
   CREATE = 'create',
@@ -175,25 +176,36 @@ export const apiService = {
   uploadFile: async (file: File | string) => {
     if (typeof file === 'string') return file; // Already a URL or base64
 
+    let fileToUpload = file;
+    if (file.type === 'application/pdf') {
+      try {
+        fileToUpload = await convertPdfToWebP(file);
+      } catch (error) {
+        console.error('Error converting PDF to WebP:', error);
+        // Fallback to original file if conversion fails
+      }
+    }
+
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('file', fileToUpload);
 
     const response = await fetch('/api/upload', {
       method: 'POST',
       body: formData,
+      credentials: 'include',
     });
 
     if (!response.ok) {
       const text = await response.text();
-      console.error('Upload failed response:', text);
-      throw new Error('Erro ao fazer upload do arquivo');
+      console.error(`Upload failed (Status ${response.status}):`, text);
+      throw new Error(`Erro ao fazer upload (Status ${response.status})`);
     }
 
     const contentType = response.headers.get('content-type');
     if (!contentType || !contentType.includes('application/json')) {
       const text = await response.text();
-      console.error('Expected JSON but got:', text);
-      throw new Error('Servidor retornou formato inválido');
+      console.error(`Expected JSON but got (Status ${response.status}):`, text);
+      throw new Error(`Servidor retornou formato inválido (Status ${response.status})`);
     }
 
     const result = await response.json();
@@ -770,7 +782,8 @@ export const apiService = {
 
         transaction.update(productRef, {
           quantity: newQty,
-          cost_price: newCost
+          cost_price: newCost,
+          last_supplier: data.supplier_name
         });
 
         const movementRef = doc(collection(db, 'movements'));

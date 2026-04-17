@@ -1037,7 +1037,8 @@ export default function App() {
         for (const file of data.invoices) {
           if (file instanceof File) {
             const url = await apiService.uploadFile(file);
-            invoiceUrls.push({ name: file.name, url });
+            const name = file.type === 'application/pdf' ? file.name.replace(/\.pdf$/i, '.webp') : file.name;
+            invoiceUrls.push({ name, url });
           } else {
             // If it's already an object with name and url/data (though in this flow it should be File)
             invoiceUrls.push(file);
@@ -1301,6 +1302,7 @@ export default function App() {
             { key: 'issue_date_fmt', label: 'DATA EMISSÃO' },
             { key: 'date_fmt', label: 'DATA MOVIMENTO' },
             { key: 'doc_number', label: 'DOC. FISCAL' },
+            { key: 'supplier_name', label: 'FORNECEDOR' },
             { key: 'product_name', label: 'PRODUTO' },
             { key: 'quantity', label: 'QUANTIDADE' },
             { key: 'unit_price_fmt', label: 'V. UNITÁRIO' },
@@ -1396,8 +1398,8 @@ export default function App() {
 
       {/* Sidebar */}
       <aside className={cn(
-        "fixed inset-y-0 left-0 z-50 bg-white border-r border-zinc-200 transition-all duration-300 lg:relative lg:translate-x-0 dark:bg-zinc-950 dark:border-zinc-800",
-        isSidebarCollapsed ? "w-20" : "w-64",
+        "fixed inset-y-0 left-0 z-50 bg-white border-r border-zinc-200 transition-all duration-300 lg:relative lg:translate-x-0 dark:bg-zinc-950 dark:border-zinc-800 flex-shrink-0",
+        isSidebarCollapsed ? "w-20" : "w-64 md:w-56 lg:w-64",
         !isSidebarOpen && "-translate-x-full lg:translate-x-0"
       )}>
         <div className="flex flex-col h-full overflow-hidden">

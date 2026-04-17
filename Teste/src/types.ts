@@ -19,6 +19,7 @@ export interface Product {
   quantity: number;
   min_quantity: number | null;
   photo?: string;
+  last_supplier?: string;
 }
 
 export interface Client {

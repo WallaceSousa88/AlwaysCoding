@@ -7,6 +7,35 @@
 }
 
 @layer base {
+  /* Proportional scaling based on screen size */
+  html {
+    font-size: 16px; /* Default Desktop */
+  }
+
+  @media screen and (max-width: 1280px) {
+    html {
+      font-size: 15px; /* Large Tablets / Small Laptops */
+    }
+  }
+
+  @media screen and (max-width: 1024px) {
+    html {
+      font-size: 14px; /* Tablets Landscape */
+    }
+  }
+
+  @media screen and (max-width: 768px) {
+    html {
+      font-size: 13px; /* Mobile Landscape Large */
+    }
+  }
+
+  @media screen and (max-width: 480px) {
+    html {
+      font-size: 12px; /* Mobile Landscape Small */
+    }
+  }
+
   body {
     @apply antialiased text-zinc-900 bg-white transition-colors duration-300;
   }
@@ -40,6 +69,18 @@
   #root > div:not(#portrait-warning) {
     display: none !important;
   }
+}
+
+/* Landscape spacing adjustments */
+@media screen and (max-height: 500px) and (orientation: landscape) {
+  .p-6 { @apply !p-4; }
+  .p-8 { @apply !p-5; }
+  .px-6.py-4 { @apply !px-3 !py-2; }
+  .px-6.py-3 { @apply !px-3 !py-1.5; }
+  .space-y-6 { @apply !space-y-4; }
+  .gap-6 { @apply !gap-4; }
+  .h-24 { @apply !h-16; }
+  .w-24 { @apply !w-16; }
 }
 
 /* Custom Scrollbar */

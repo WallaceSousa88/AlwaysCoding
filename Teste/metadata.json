@@ -1,5 +1,5 @@
 {
   "name": "SkySmart",
   "description": "O SkySmart é o sistema central da SkyMídia, integrando estoque, produção, clientes, fornecedores e patrimônio em um fluxo único e inteligente.",
-  "requestFramePermissions": []
+  "requestFramePermissions": ["camera"]
 }

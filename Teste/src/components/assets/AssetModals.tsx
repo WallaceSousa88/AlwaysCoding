@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, Camera, Calendar, DollarSign, Percent, Tag, FileText, Hash, ArrowDownLeft, ArrowUpRight, Plus } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { Asset } from '../../types';
 import { Modal, Input, Select, Button, cn } from '../Common';
 
@@ -24,7 +25,80 @@ export const AssetModal = ({ isOpen, onClose, onSave, asset, categories, fieldEr
   });
   const [photo, setPhoto] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const [isCameraOpen, setIsCameraOpen] = useState(false);
+  const [facingMode, setFacingMode] = useState<'user' | 'environment'>('environment');
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const startCamera = async (mode: 'user' | 'environment' = facingMode) => {
+    try {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+      }
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { 
+          facingMode: mode,
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        } 
+      });
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+      streamRef.current = stream;
+      setFacingMode(mode);
+      setIsCameraOpen(true);
+    } catch (err) {
+      console.error("Error accessing camera:", err);
+      alert("Não foi possível acessar a câmera. Verifique as permissões.");
+    }
+  };
+
+  const flipCamera = () => {
+    const newMode = facingMode === 'user' ? 'environment' : 'user';
+    startCamera(newMode);
+  };
+
+  const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+    setIsCameraOpen(false);
+  };
+
+  const takePhoto = () => {
+    if (videoRef.current) {
+      const canvas = document.createElement('canvas');
+      canvas.width = videoRef.current.videoWidth;
+      canvas.height = videoRef.current.videoHeight;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(videoRef.current, 0, 0);
+        const photoData = canvas.toDataURL('image/jpeg');
+        
+        // Convert base64 to File object
+        fetch(photoData)
+          .then(res => res.blob())
+          .then(blob => {
+            const file = new File([blob], "asset_photo.jpg", { type: "image/jpeg" });
+            setPhoto(file);
+            setPhotoPreview(photoData);
+          });
+          
+        stopCamera();
+      }
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (asset) {
@@ -103,23 +177,105 @@ export const AssetModal = ({ isOpen, onClose, onSave, asset, categories, fieldEr
                 <Camera className="text-zinc-400" size={32} />
               )}
             </div>
-            <button 
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="absolute -bottom-2 -right-2 p-2 bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 rounded-xl shadow-lg hover:scale-110 transition-transform"
-            >
-              <Plus size={16} />
-            </button>
+            <div className="absolute -bottom-2 -right-2 flex gap-1">
+              <button 
+                type="button"
+                onClick={() => startCamera()}
+                className="p-2 bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 rounded-xl shadow-lg hover:scale-110 transition-transform"
+                title="Tirar Foto"
+              >
+                <Camera size={16} />
+              </button>
+              <button 
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="p-2 bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 rounded-xl shadow-lg hover:scale-110 transition-transform"
+                title="Upload de Arquivo"
+              >
+                <Plus size={16} />
+              </button>
+            </div>
             <input 
               type="file" 
               ref={fileInputRef}
               onChange={handlePhotoChange}
-              accept="image/*"
+              accept="image/*,application/pdf"
               className="hidden"
             />
           </div>
           <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Foto do Patrimônio</p>
         </div>
+
+        <AnimatePresence>
+          {isCameraOpen && (
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[500] bg-black flex flex-col items-center justify-center pt-safe pb-safe"
+            >
+              <video 
+                ref={videoRef} 
+                autoPlay 
+                playsInline 
+                className="w-full h-full object-cover"
+              />
+              
+              <div className="absolute top-0 left-0 right-0 p-6 bg-gradient-to-b from-black/60 to-transparent flex items-center justify-between">
+                <span className="text-white text-sm font-bold tracking-widest uppercase">Câmera SkySmart</span>
+                <button 
+                  type="button"
+                  onClick={stopCamera}
+                  className="p-2 text-white hover:bg-white/10 rounded-full transition-colors"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+
+              <div className="absolute bottom-12 left-0 right-0 flex items-center justify-around px-12">
+                <button 
+                  type="button"
+                  onClick={flipCamera}
+                  className="p-4 bg-white/20 hover:bg-white/30 text-white rounded-full backdrop-blur-xl border border-white/20 transition-all flex items-center justify-center"
+                  title="Alternar Câmera"
+                >
+                  <motion.div
+                    animate={{ rotate: facingMode === 'user' ? 180 : 0 }}
+                    transition={{ type: "spring", stiffness: 260, damping: 20 }}
+                  >
+                    <Plus size={24} className="rotate-45" />
+                  </motion.div>
+                </button>
+
+                <button 
+                  type="button"
+                  onClick={takePhoto}
+                  className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-2xl active:scale-95 transition-all p-1"
+                >
+                  <div className="w-full h-full rounded-full border-4 border-zinc-900/10 flex items-center justify-center">
+                    <div className="w-[85%] h-[85%] rounded-full bg-white border-2 border-zinc-900" />
+                  </div>
+                </button>
+
+                <button 
+                  type="button"
+                  onClick={stopCamera}
+                  className="p-4 bg-rose-500/80 hover:bg-rose-600 text-white rounded-full backdrop-blur-xl border border-rose-400/20 transition-all"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+
+              <div className="absolute top-20 left-0 right-0 flex justify-center pointer-events-none">
+                <div className="bg-black/40 backdrop-blur-md px-4 py-1.5 rounded-full border border-white/10">
+                  <p className="text-[10px] text-white/80 font-bold uppercase tracking-widest">
+                    {facingMode === 'environment' ? 'Câmera Traseira - Ideal para patrimônio' : 'Câmera Frontal'}
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="md:col-span-2">

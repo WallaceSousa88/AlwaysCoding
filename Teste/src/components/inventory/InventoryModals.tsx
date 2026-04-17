@@ -58,23 +58,37 @@ export const ProductModal = ({
   onClear
 }: ProductModalProps) => {
   const [isCameraOpen, setIsCameraOpen] = useState(false);
+  const [facingMode, setFacingMode] = useState<'user' | 'environment'>('environment');
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
-  const startCamera = async () => {
+  const startCamera = async (mode: 'user' | 'environment' = facingMode) => {
     try {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+      }
       const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: 'environment' } 
+        video: { 
+          facingMode: mode,
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        } 
       });
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
       }
       streamRef.current = stream;
+      setFacingMode(mode);
       setIsCameraOpen(true);
     } catch (err) {
       console.error("Error accessing camera:", err);
       alert("Não foi possível acessar a câmera. Verifique as permissões.");
     }
+  };
+
+  const flipCamera = () => {
+    const newMode = facingMode === 'user' ? 'environment' : 'user';
+    startCamera(newMode);
   };
 
   const stopCamera = () => {
@@ -143,7 +157,7 @@ export const ProductModal = ({
               type="file" 
               ref={fileInputRef}
               onChange={handleFileChange}
-              accept="image/*"
+              accept="image/*,application/pdf"
               className="hidden"
             />
           </div>
@@ -153,32 +167,72 @@ export const ProductModal = ({
         <AnimatePresence>
           {isCameraOpen && (
             <motion.div 
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              className="relative bg-black rounded-2xl overflow-hidden"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[500] bg-black flex flex-col items-center justify-center pt-safe pb-safe"
             >
               <video 
                 ref={videoRef} 
                 autoPlay 
                 playsInline 
-                className="w-full aspect-square object-cover"
+                className="w-full h-full object-cover"
               />
-              <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-4">
+              
+              {/* Header Info */}
+              <div className="absolute top-0 left-0 right-0 p-6 bg-gradient-to-b from-black/60 to-transparent flex items-center justify-between">
+                <span className="text-white text-sm font-bold tracking-widest uppercase">Câmera SkySmart</span>
                 <button 
                   type="button"
                   onClick={stopCamera}
-                  className="px-4 py-2 bg-white/20 hover:bg-white/40 text-white text-xs font-bold rounded-xl backdrop-blur-md transition-colors uppercase"
+                  className="p-2 text-white hover:bg-white/10 rounded-full transition-colors"
                 >
-                  CANCELAR
+                  <X size={24} />
                 </button>
+              </div>
+
+              {/* Controls */}
+              <div className="absolute bottom-12 left-0 right-0 flex items-center justify-around px-12">
+                <button 
+                  type="button"
+                  onClick={flipCamera}
+                  className="p-4 bg-white/20 hover:bg-white/30 text-white rounded-full backdrop-blur-xl border border-white/20 transition-all flex items-center justify-center"
+                  title="Alternar Câmera"
+                >
+                  <motion.div
+                    animate={{ rotate: facingMode === 'user' ? 180 : 0 }}
+                    transition={{ type: "spring", stiffness: 260, damping: 20 }}
+                  >
+                    <Plus size={24} className="rotate-45" /> {/* Use Plus as a generic icon or switch to Lucide Refresh if available, but I'll use Lucide icons I know are imported */}
+                  </motion.div>
+                </button>
+
                 <button 
                   type="button"
                   onClick={takePhoto}
-                  className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform"
+                  className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-2xl active:scale-95 transition-all p-1"
                 >
-                  <div className="w-10 h-10 rounded-full border-2 border-zinc-900" />
+                  <div className="w-full h-full rounded-full border-4 border-zinc-900/10 flex items-center justify-center">
+                    <div className="w-[85%] h-[85%] rounded-full bg-white border-2 border-zinc-900" />
+                  </div>
                 </button>
+
+                <button 
+                  type="button"
+                  onClick={stopCamera}
+                  className="p-4 bg-rose-500/80 hover:bg-rose-600 text-white rounded-full backdrop-blur-xl border border-rose-400/20 transition-all"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+
+              {/* Tips */}
+              <div className="absolute top-20 left-0 right-0 flex justify-center pointer-events-none">
+                <div className="bg-black/40 backdrop-blur-md px-4 py-1.5 rounded-full border border-white/10">
+                  <p className="text-[10px] text-white/80 font-bold uppercase tracking-widest">
+                    {facingMode === 'environment' ? 'Câmera Traseira - Ideal para produtos' : 'Câmera Frontal'}
+                  </p>
+                </div>
               </div>
             </motion.div>
           )}
@@ -293,7 +347,7 @@ export const ProductModal = ({
             >
               CANCELAR
             </button>
-            <Button onClick={onAddCategory}>
+            <Button type="button" onClick={onAddCategory}>
               SALVAR CATEGORIA
             </Button>
           </div>
@@ -318,7 +372,7 @@ export const ProductModal = ({
             >
               CANCELAR
             </button>
-            <Button onClick={onAddUnit}>
+            <Button type="button" onClick={onAddUnit}>
               SALVAR UNIDADE
             </Button>
           </div>

@@ -49,15 +49,15 @@ export const FinancialDetailModal = ({
                   </div>
                   <div className="min-w-0">
                     <p className="text-xs font-bold text-zinc-900 dark:text-zinc-100 truncate uppercase">{file.name}</p>
-                    <p className="text-[10px] text-zinc-400 uppercase">Documento PDF</p>
+                    <p className="text-[10px] text-zinc-400 uppercase">Documento WebP</p>
                   </div>
                 </div>
                 <button 
                   onClick={() => {
                     const link = document.createElement('a');
-                    link.href = file.data;
+                    link.href = file.url || file.data;
                     link.target = '_blank';
-                    link.download = file.name;
+                    link.download = file.name.toLowerCase().endsWith('.webp') ? file.name : file.name.replace(/\.[^/.]+$/, "") + ".webp";
                     link.click();
                   }}
                   className="p-2 text-zinc-400 hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100 transition-colors"
@@ -80,7 +80,7 @@ export const FinancialDetailModal = ({
             </div>
             <div className="min-w-0">
               <p className="text-xs font-bold text-zinc-900 dark:text-zinc-100 truncate uppercase">Nota Fiscal</p>
-              <p className="text-[10px] text-zinc-400 uppercase">Documento PDF</p>
+              <p className="text-[10px] text-zinc-400 uppercase">Documento WebP</p>
             </div>
           </div>
           <button 
@@ -88,7 +88,7 @@ export const FinancialDetailModal = ({
               const link = document.createElement('a');
               link.href = entry.invoice_pdf!;
               link.target = '_blank';
-              link.download = `NF-${entry.doc_number || entry.id}.pdf`;
+              link.download = `NF-${entry.doc_number || entry.id}.webp`;
               link.click();
             }}
             className="p-2 text-zinc-400 hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100 transition-colors"

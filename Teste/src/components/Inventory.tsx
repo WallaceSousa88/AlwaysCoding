@@ -124,7 +124,16 @@ export const Inventory = ({
   const [endDate, setEndDate] = useState('');
   const [movementTypeFilter, setMovementTypeFilter] = useState<'ALL' | 'IN' | 'OUT'>('ALL');
   const [movementLocationFilter, setMovementLocationFilter] = useState<string>('ALL');
-  const [visibleColumns, setVisibleColumns] = useState<string[]>(['name', 'category', 'quantity', 'total_value', 'min_quantity', 'status']);
+  const DEFAULT_COLUMNS = ['name', 'category', 'quantity', 'total_value', 'min_quantity', 'status'];
+  const [visibleColumns, setVisibleColumns] = useState<string[]>(() => {
+    const saved = localStorage.getItem('inventory_visible_columns');
+    return saved ? JSON.parse(saved) : DEFAULT_COLUMNS;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('inventory_visible_columns', JSON.stringify(visibleColumns));
+  }, [visibleColumns]);
+
   const [isColumnSelectorOpen, setIsColumnSelectorOpen] = useState(false);
   const columnSelectorRef = useRef<HTMLDivElement>(null);
 

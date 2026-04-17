@@ -30,10 +30,27 @@ async function startServer() {
 
   // API Routes for File Uploads
   app.post('/api/upload', (req, res, next) => {
-    console.log('Recebendo requisição de upload...');
+    console.log('--- Nova requisição de upload ---');
+    console.log('Headers:', req.headers);
     next();
-  }, upload.single('file'), async (req: any, res: any) => {
-    console.log('Arquivo recebido:', req.file ? req.file.originalname : 'Nenhum');
+  }, (req: any, res: any, next: any) => {
+    upload.single('file')(req, res, (err: any) => {
+      if (err instanceof multer.MulterError) {
+        console.error('Multer Error:', err);
+        return res.status(400).json({ error: `Erro no upload (Multer): ${err.message}` });
+      } else if (err) {
+        console.error('Unknown Upload Error:', err);
+        return res.status(500).json({ error: `Erro no upload: ${err.message}` });
+      }
+      next();
+    });
+  }, async (req: any, res: any) => {
+    console.log('Arquivo recebido:', req.file ? {
+      originalname: req.file.originalname,
+      mimetype: req.file.mimetype,
+      size: req.file.size
+    } : 'Nenhum');
+    
     if (!req.file) return res.status(400).json({ error: 'Nenhum arquivo enviado' });
 
     try {

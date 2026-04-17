@@ -147,7 +147,7 @@ export const Kanban = ({ orders, serviceEntries, onUpdateStatus, onEdit, onDelet
       </div>
       <div className="flex gap-4 overflow-x-auto pb-4 min-h-[calc(100vh-16rem)] items-start">
         {/* Service Entries Column */}
-        <div className="flex-shrink-0 w-72 flex flex-col gap-3 self-stretch">
+        <div className="flex-shrink-0 w-64 lg:w-72 flex flex-col gap-3 self-stretch">
           <div className="flex items-center justify-between px-1">
             <h3 className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-widest">ENTRADA DE SERVIÇO</h3>
             <span className="bg-zinc-200 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 text-[10px] font-bold px-2 py-0.5 rounded-full">
@@ -201,7 +201,7 @@ export const Kanban = ({ orders, serviceEntries, onUpdateStatus, onEdit, onDelet
         {KANBAN_COLUMNS.map((col) => (
           <div 
             key={col} 
-            className="flex-shrink-0 w-72 flex flex-col gap-3 self-stretch"
+            className="flex-shrink-0 w-64 lg:w-72 flex flex-col gap-3 self-stretch"
             onDragOver={(e) => handleDragOver(e, col)}
             onDragLeave={(e) => {
               // Only clear if we are actually leaving the column container
