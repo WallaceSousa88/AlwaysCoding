@@ -65,7 +65,6 @@ export const Modal = ({ isOpen, onClose, title, children, zIndex = 200, noPaddin
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          onClick={onClose}
           className="absolute inset-0 bg-zinc-900/60 backdrop-blur-sm"
         />
         <motion.div 
@@ -117,7 +116,6 @@ export const ConfirmModal = ({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          onClick={onClose}
           className="absolute inset-0 bg-zinc-900/60 backdrop-blur-sm"
         />
         <motion.div 
@@ -170,20 +168,23 @@ export const ErrorAlert = ({ children, className }: { children: React.ReactNode,
   </div>
 );
 
-export const Input = ({ label, icon, onIconClick, className, error, required, ...props }: any) => {
+export const Input = ({ label, icon, onIconClick, endIcon, onEndIconClick, className, error, required, ...props }: any) => {
   const inputRef = React.useRef<HTMLInputElement>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (props.onChange) {
-      const start = e.target.selectionStart;
-      const end = e.target.selectionEnd;
+      const selectionStart = e.target.selectionStart;
+      const selectionEnd = e.target.selectionEnd;
+      const valueBefore = e.target.value;
       
       props.onChange(e);
       
-      if (start !== null && end !== null) {
+      if (selectionStart !== null && selectionEnd !== null) {
         requestAnimationFrame(() => {
           if (inputRef.current) {
-            inputRef.current.setSelectionRange(start, end);
+            const valueAfter = inputRef.current.value;
+            const delta = valueAfter.length - valueBefore.length;
+            inputRef.current.setSelectionRange(selectionStart + delta, selectionEnd + delta);
           }
         });
       }
@@ -214,13 +215,25 @@ export const Input = ({ label, icon, onIconClick, className, error, required, ..
           ref={inputRef}
           className={cn(
             "w-full bg-zinc-50 border border-zinc-200 rounded-xl py-2.5 text-sm text-zinc-900 transition-all focus:ring-2 focus:ring-zinc-900/5 focus:border-zinc-900 dark:bg-zinc-800/50 dark:border-zinc-800 dark:text-zinc-100 dark:focus:border-zinc-100",
-            icon ? "pl-10 pr-4" : "px-4",
+            icon ? "pl-10" : "pl-4",
+            endIcon ? "pr-10" : "pr-4",
             error && "border-rose-500 focus:border-rose-500 focus:ring-rose-500/5",
             className
           )}
           {...props}
           onChange={handleChange}
         />
+        {endIcon && (
+          <div 
+            onClick={onEndIconClick}
+            className={cn(
+              "absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 transition-colors",
+              onEndIconClick ? "cursor-pointer hover:text-zinc-900 dark:hover:text-zinc-100" : "pointer-events-none"
+            )}
+          >
+            {endIcon}
+          </div>
+        )}
       </div>
       {error && <ErrorText>{error}</ErrorText>}
     </div>
@@ -261,15 +274,18 @@ export const TextArea = ({ label, icon, className, error, required, ...props }: 
 
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     if (props.onChange) {
-      const start = e.target.selectionStart;
-      const end = e.target.selectionEnd;
+      const selectionStart = e.target.selectionStart;
+      const selectionEnd = e.target.selectionEnd;
+      const valueBefore = e.target.value;
       
       props.onChange(e);
       
-      if (start !== null && end !== null) {
+      if (selectionStart !== null && selectionEnd !== null) {
         requestAnimationFrame(() => {
           if (textAreaRef.current) {
-            textAreaRef.current.setSelectionRange(start, end);
+            const valueAfter = textAreaRef.current.value;
+            const delta = valueAfter.length - valueBefore.length;
+            textAreaRef.current.setSelectionRange(selectionStart + delta, selectionEnd + delta);
           }
         });
       }
@@ -304,16 +320,19 @@ export const SearchBar = ({ value, onChange, placeholder = "BUSCAR...", classNam
   const inputRef = React.useRef<HTMLInputElement>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const start = e.target.selectionStart;
-    const end = e.target.selectionEnd;
+    const selectionStart = e.target.selectionStart;
+    const selectionEnd = e.target.selectionEnd;
+    const valueBefore = e.target.value;
     const newValue = e.target.value.toUpperCase();
     
     onChange(newValue);
     
-    if (start !== null && end !== null) {
+    if (selectionStart !== null && selectionEnd !== null) {
       requestAnimationFrame(() => {
         if (inputRef.current) {
-          inputRef.current.setSelectionRange(start, end);
+          const valueAfter = inputRef.current.value;
+          const delta = valueAfter.length - valueBefore.length;
+          inputRef.current.setSelectionRange(selectionStart + delta, selectionEnd + delta);
         }
       });
     }

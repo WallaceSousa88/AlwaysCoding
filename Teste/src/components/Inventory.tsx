@@ -26,6 +26,7 @@ import {
   PdfOptionsModal, 
   ProductDetailModal 
 } from './inventory/InventoryModals';
+import { maskCurrency, parseCurrency } from '../lib/masks';
 import { 
   exportToCSV, 
   exportToPDF, 
@@ -167,7 +168,7 @@ export const Inventory = ({
     category: '',
     unit: 'un',
     photo: '',
-    cost_price: 0,
+    cost_price: '',
     min_quantity: null as number | null
   });
 
@@ -178,7 +179,7 @@ export const Inventory = ({
         category: editingProduct.category,
         unit: editingProduct.unit,
         photo: editingProduct.photo || '',
-        cost_price: editingProduct.cost_price,
+        cost_price: maskCurrency(editingProduct.cost_price.toString().replace('.', ',')),
         min_quantity: editingProduct.min_quantity
       });
     } else {
@@ -187,7 +188,7 @@ export const Inventory = ({
         category: '',
         unit: 'un',
         photo: '',
-        cost_price: 0,
+        cost_price: '',
         min_quantity: null
       });
     }
@@ -200,7 +201,7 @@ export const Inventory = ({
     product_id: '',
     location: '',
     quantity: 0,
-    unit_price: 0,
+    unit_price: '',
     xml: '',
     invoices: [] as { name: string, data: string }[]
   });
@@ -268,7 +269,7 @@ export const Inventory = ({
     data.append('name', formData.name);
     data.append('category', formData.category);
     data.append('unit', formData.unit);
-    data.append('cost_price', formData.cost_price.toString());
+    data.append('cost_price', parseCurrency(formData.cost_price).toString());
     
     if (formData.min_quantity !== null && formData.min_quantity !== undefined) {
       data.append('min_quantity', formData.min_quantity.toString());
@@ -300,7 +301,7 @@ export const Inventory = ({
       product_id: '',
       location: '',
       quantity: 0,
-      unit_price: 0,
+      unit_price: '',
       xml: '',
       invoices: []
     });
@@ -400,6 +401,7 @@ export const Inventory = ({
 
     onStockIn({
       ...stockInData,
+      unit_price: parseCurrency(stockInData.unit_price.toString()),
       product_name: product?.name || '',
       supplier_name: supplierName || ''
     });

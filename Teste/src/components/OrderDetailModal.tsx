@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Edit, Trash2, ClipboardList, User, Calendar, CheckCircle2, Info, Check, AlertTriangle } from 'lucide-react';
+import { X, Edit, Trash2, ClipboardList, User, Calendar, CheckCircle2, Info, Check, AlertTriangle, Box } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Order, OrderDetails, ProductionItem } from '../types';
 import { apiService } from '../services/apiService';
@@ -214,6 +214,25 @@ export const OrderDetailModal = ({
               </div>
             </div>
           </div>
+          
+          {/* Products Section */}
+          {details?.products && details.products.length > 0 && (
+            <div className="space-y-4">
+              <h3 className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest flex items-center gap-2">
+                <Box size={14} /> PRODUTOS SELECIONADOS
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {details.products.map((p, idx) => (
+                  <div key={idx} className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl border border-zinc-100 dark:border-zinc-800">
+                    <span className="text-xs font-bold text-zinc-700 dark:text-zinc-300 uppercase">{p.name}</span>
+                    <span className="text-[10px] font-bold text-zinc-400 bg-white dark:bg-zinc-900 px-2 py-1 rounded-md border border-zinc-100 dark:border-zinc-800">
+                      {p.quantity} UN
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Technical Details - Production Checklist */}
           {details && (
@@ -227,13 +246,6 @@ export const OrderDetailModal = ({
                 </span>
               </div>
               
-              {details.kanban_description && (
-                <div className="p-4 bg-zinc-50 dark:bg-zinc-800/30 rounded-2xl border border-zinc-100 dark:border-zinc-800">
-                  <h4 className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest mb-2">OBSERVAÇÕES KANBAN</h4>
-                  <p className="text-xs text-zinc-600 dark:text-zinc-300 uppercase leading-relaxed">{details.kanban_description}</p>
-                </div>
-              )}
-
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-10 p-6 bg-white dark:bg-zinc-900/50 border border-zinc-100 dark:border-zinc-800 rounded-3xl shadow-sm">
                 {renderSection('1. IMPRESSÃO 3D', details.impression_3d?.items || [])}
                 {renderSection('2. CORTES / DOBRA', details.cuts_folds?.items || [])}

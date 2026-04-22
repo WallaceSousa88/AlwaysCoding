@@ -369,6 +369,27 @@ export const apiService = {
     }
   },
 
+  // Production Products
+  getProductionProducts: async () => {
+    try {
+      const snap = await getDocs(collection(db, 'production_products'));
+      return snap.docs.map(d => ({ id: d.id, ...d.data() } as any));
+    } catch (error) {
+      handleFirestoreError(error, OperationType.LIST, 'production_products');
+    }
+  },
+  addProductionProduct: async (name: string) => {
+    try {
+      if (await isDuplicate('production_products', { name })) {
+        throw new Error('Este produto já está cadastrado.');
+      }
+      const docRef = await addDoc(collection(db, 'production_products'), { name });
+      return { id: docRef.id, name };
+    } catch (error) {
+      handleFirestoreError(error, OperationType.CREATE, 'production_products');
+    }
+  },
+
   // Service Entries
   getServiceEntries: async (userId?: string) => {
     try {
@@ -936,11 +957,13 @@ export const apiService = {
         throw new Error('Este nome de usuário já está em uso.');
       }
 
-      const docRef = await addDoc(collection(db, 'users'), data);
-      
       // Sync with Auth via REST API (doesn't require admin SDK)
       await apiService.syncUserWithAuth(data.username, data.password);
 
+      // Save to Firestore without the password for better security
+      const { password, ...firestoreData } = data;
+      const docRef = await addDoc(collection(db, 'users'), firestoreData);
+      
       return { id: docRef.id };
     } catch (error) {
       handleFirestoreError(error, OperationType.CREATE, 'users');
@@ -948,12 +971,14 @@ export const apiService = {
   },
   updateUser: async (id: string | number, data: any) => {
     try {
-      await updateDoc(doc(db, 'users', String(id)), data);
-
-      // Sync with Auth if username or password changed
-      if (data.username || data.password) {
-        await apiService.syncUserWithAuth(data.username, data.password);
+      // Sync with Auth if username or password provided
+      if (data.username || (data.password && data.password.trim() !== '')) {
+        await apiService.syncUserWithAuth(data.username || '', data.password || '');
       }
+
+      // Save to Firestore without the password
+      const { password, ...firestoreData } = data;
+      await updateDoc(doc(db, 'users', String(id)), firestoreData);
 
       return { success: true };
     } catch (error) {

@@ -189,6 +189,15 @@
         "created_by": { "type": "string" }
       },
       "required": ["client_id", "obra", "local", "valor"]
+    },
+    "ProductionProduct": {
+      "title": "ProductionProduct",
+      "description": "Products specifically for production orders",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" }
+      },
+      "required": ["name"]
     }
   },
   "firestore": {
@@ -203,6 +212,7 @@
     "/locations": { "schema": "Location", "description": "Storage locations" },
     "/units": { "schema": "Unit", "description": "Measurement units" },
     "/audit_logs": { "schema": "AuditLog", "description": "Audit trails" },
-    "/service_entries": { "schema": "ServiceEntry", "description": "Vendor service entries" }
+    "/service_entries": { "schema": "ServiceEntry", "description": "Vendor service entries" },
+    "/production_products": { "schema": "ProductionProduct", "description": "Products for orders" }
   }
 }

@@ -105,6 +105,11 @@ export interface Order {
   service_entry_id?: string | number;
 }
 
+export interface ProductionProduct {
+  id: string | number;
+  name: string;
+}
+
 export interface ProductionItem {
   name: string;
   quantity: number;
@@ -113,7 +118,7 @@ export interface ProductionItem {
 export interface OrderDetails {
   entry_date: string;
   delivery_date: string;
-  kanban_description?: string;
+  products?: { name: string; quantity: number }[];
   completed_items?: string[]; // Array of item names that are finished
   impression_3d: { items: ProductionItem[] };
   cuts_folds: { items: ProductionItem[] };

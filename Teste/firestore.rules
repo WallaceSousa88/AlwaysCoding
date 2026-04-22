@@ -45,11 +45,21 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function isSuperAdmin() {
+      return isAuthenticated() &&
+        (request.auth.token.email == "Diesel.087@gmail.com" ||
+          request.auth.token.email == "admin@skysmart.com");
+    }
+
     function isAdmin() {
       return isAuthenticated() &&
-        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin' ||
-          request.auth.token.email == "Diesel.087@gmail.com" ||
-          request.auth.token.email == "admin@skysmart.com");
+        (isSuperAdmin() || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Administrador');
+    }
+
+    function canManageSettings() {
+      return isAuthenticated() &&
+        (isAdmin() || 
+         ('settings' in get(/databases/$(database)/documents/users/$(request.auth.uid)).data.permissions));
     }
 
     function hasRole(role) {
@@ -71,7 +81,9 @@ service cloud.firestore {
 
     match /users/{userId} {
       allow read: if isAuthenticated();
-      allow write: if isAdmin();
+      allow create, update: if canManageSettings();
+      allow delete: if canManageSettings() && 
+        (isSuperAdmin() || !('settings' in get(/databases/$(database)/documents/users/$(userId)).data.permissions));
     }
 
     match /products/{productId} {
@@ -126,6 +138,11 @@ service cloud.firestore {
     }
 
     match /service_entries/{entryId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+
+    match /production_products/{productId} {
       allow read: if isAuthenticated();
       allow write: if isAuthenticated();
     }

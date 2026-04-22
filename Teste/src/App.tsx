@@ -35,7 +35,7 @@ import {
   Timestamp 
 } from 'firebase/firestore';
 import { auth, db } from './firebase';
-import { Product, Client, Supplier, Asset, Order, Movement, OrderStatus, OrderDetails, User, ServiceEntry as ServiceEntryType } from './types';
+import { Product, Client, Supplier, Asset, Order, Movement, OrderStatus, OrderDetails, User, ServiceEntry as ServiceEntryType, ProductionProduct } from './types';
 import { apiService } from './services/apiService';
 import { KANBAN_COLUMNS } from './constants';
 import { Dashboard } from './components/Dashboard';
@@ -310,6 +310,7 @@ export default function App() {
   const [categories, setCategories] = useState<{id: string | number, name: string}[]>([]);
   const [locations, setLocations] = useState<{id: string | number, name: string}[]>([]);
   const [units, setUnits] = useState<{id: string | number, name: string}[]>([]);
+  const [productionProducts, setProductionProducts] = useState<ProductionProduct[]>([]);
   const [movements, setMovements] = useState<Movement[]>([]);
   const [financialEntries, setFinancialEntries] = useState<any[]>([]);
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
@@ -555,6 +556,7 @@ export default function App() {
         categoriesData,
         locationsData,
         unitsData,
+        productionProductsData,
         movementsData,
         auditLogsData,
         usersData,
@@ -569,6 +571,7 @@ export default function App() {
         apiService.getCategories(),
         apiService.getLocations(),
         apiService.getUnits(),
+        apiService.getProductionProducts(),
         apiService.getMovements(),
         apiService.getAuditLogs(),
         apiService.getUsers(),
@@ -584,6 +587,7 @@ export default function App() {
       setCategories(categoriesData || []);
       setLocations(locationsData || []);
       setUnits(unitsData || []);
+      setProductionProducts(productionProductsData || []);
       const movements = movementsData || [];
       setMovements(movements);
       
@@ -1332,6 +1336,7 @@ export default function App() {
       case 'settings': return (
         <SettingsView 
           users={systemUsers}
+          currentUserEmail={user?.email}
           categories={categories}
           units={units}
           onAddUser={async (data) => {
@@ -1541,6 +1546,11 @@ export default function App() {
         clients={clients}
         orders={orders}
         serviceEntries={serviceEntries}
+        productionProducts={productionProducts}
+        onAddProductionProduct={async (name) => {
+          await apiService.addProductionProduct(name);
+          fetchData();
+        }}
       />
 
       <OrderDetailModal 

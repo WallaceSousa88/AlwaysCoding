@@ -16,6 +16,7 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { ServiceEntry as ServiceEntryType, Client } from '../types';
 import { Card, cn, Input, Select, Button, Modal, ConfirmModal } from './Common';
+import { maskCurrency, parseCurrency } from '../lib/masks';
 import { GenericList } from './GenericList';
 import { exportGenericToCSV, exportGenericToPDF } from '../services/exportService';
 
@@ -151,7 +152,7 @@ export const ServiceEntryModal = ({ isOpen, onClose, onSubmit, editingEntry, cli
         client_id: editingEntry.client_id.toString(),
         obra: editingEntry.obra,
         local: editingEntry.local,
-        valor: editingEntry.valor.toString()
+        valor: maskCurrency(editingEntry.valor.toString().replace('.', ','))
       });
     } else {
       setFormData({
@@ -169,7 +170,7 @@ export const ServiceEntryModal = ({ isOpen, onClose, onSubmit, editingEntry, cli
     const data = {
       ...formData,
       client_name: client ? (client.razao_social || client.name) : '',
-      valor: parseFloat(formData.valor) || 0
+      valor: parseCurrency(formData.valor)
     };
     await onSubmit(data);
   };
@@ -214,10 +215,8 @@ export const ServiceEntryModal = ({ isOpen, onClose, onSubmit, editingEntry, cli
           label="VALOR (R$)" 
           icon={<DollarSign size={18} />}
           required
-          type="number"
-          step="0.01"
           value={formData.valor}
-          onChange={(e: any) => setFormData({ ...formData, valor: e.target.value })}
+          onChange={(e: any) => setFormData({ ...formData, valor: maskCurrency(e.target.value) })}
         />
         
         <div className="flex justify-end gap-3 pt-4 border-t border-zinc-100 dark:border-zinc-800">

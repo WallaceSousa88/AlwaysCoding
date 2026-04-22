@@ -3,6 +3,7 @@ import { X, Camera, Calendar, DollarSign, Percent, Tag, FileText, Hash, ArrowDow
 import { motion, AnimatePresence } from 'motion/react';
 import { Asset } from '../../types';
 import { Modal, Input, Select, Button, cn } from '../Common';
+import { maskCurrency, parseCurrency } from '../../lib/masks';
 
 interface AssetModalProps {
   isOpen: boolean;
@@ -107,7 +108,7 @@ export const AssetModal = ({ isOpen, onClose, onSave, asset, categories, fieldEr
         asset_number: asset.asset_number || '',
         category: asset.category || '',
         purchase_date: asset.purchase_date || new Date().toISOString().split('T')[0],
-        purchase_value: asset.purchase_value.toString(),
+        purchase_value: maskCurrency(asset.purchase_value.toString().replace('.', ',')),
         depreciation_type: asset.depreciation_type || 'MENSAL',
         depreciation_percentage: asset.depreciation_percentage.toString(),
       });
@@ -132,7 +133,11 @@ export const AssetModal = ({ isOpen, onClose, onSave, asset, categories, fieldEr
     const data = new FormData();
     Object.entries(formData).forEach(([key, value]) => {
       if (value !== null && value !== undefined) {
-        data.append(key, String(value));
+        if (key === 'purchase_value') {
+          data.append(key, parseCurrency(value.toString()).toString());
+        } else {
+          data.append(key, String(value));
+        }
       }
     });
     if (photo) data.append('photo', photo);
@@ -320,10 +325,8 @@ export const AssetModal = ({ isOpen, onClose, onSave, asset, categories, fieldEr
           <Input 
             label="Valor Compra (R$)" 
             icon={<DollarSign size={18} />}
-            type="number"
-            step="0.01"
             value={formData.purchase_value}
-            onChange={(e: any) => setFormData({ ...formData, purchase_value: e.target.value })}
+            onChange={(e: any) => setFormData({ ...formData, purchase_value: maskCurrency(e.target.value) })}
             error={fieldErrors.purchase_value}
             required
           />

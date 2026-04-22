@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { Product, Supplier, Order, Movement } from '../../types';
 import { Card, cn, Input, Select, Button, Modal, ConfirmModal, ErrorAlert } from '../Common';
+import { maskCurrency, parseCurrency } from '../../lib/masks';
 import { useDebounce } from '../../hooks/useDebounce';
 
 interface ProductModalProps {
@@ -776,11 +777,8 @@ export const StockInModal = ({
             />
             <Input
               label="Valor Unitário (R$)"
-              type="number"
-              min="0"
-              step="0.01"
-              value={stockInData.unit_price || ''}
-              onChange={e => setStockInData({...stockInData, unit_price: parseFloat(e.target.value) || 0})}
+              value={stockInData.unit_price}
+              onChange={e => setStockInData({...stockInData, unit_price: maskCurrency(e.target.value)})}
             />
           </div>
         </div>
