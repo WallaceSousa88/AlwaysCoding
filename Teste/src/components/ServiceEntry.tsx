@@ -11,11 +11,12 @@ import {
   User,
   MapPin,
   DollarSign,
-  Briefcase
+  Briefcase,
+  Building2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ServiceEntry as ServiceEntryType, Client } from '../types';
-import { Card, cn, Input, Select, Button, Modal, ConfirmModal } from './Common';
+import { Card, cn, Input, Select, Button, Modal, ConfirmModal, TextArea } from './Common';
 import { maskCurrency, parseCurrency } from '../lib/masks';
 import { GenericList } from './GenericList';
 import { exportGenericToCSV, exportGenericToPDF } from '../services/exportService';
@@ -138,12 +139,52 @@ interface ServiceEntryModalProps {
   clients: Client[];
 }
 
+const PRODUCT_OPTIONS: any = {
+  'ADESIVO': {
+    sub: ['LEITOSO', 'TRANSPARENTE', 'JATEADO', 'CALANDRADO', 'LEITOSO BLACKOUT'],
+    variants: ['FOSCO', 'BRILHO', 'JATEADO/LAMINADO'],
+    fields: ['altura', 'largura']
+  },
+  'LONA': {
+    sub: ['LEITOSO', 'TRANSPARENTE', 'JATEADO', 'CALANDRADO', 'LEITOSO BLACKOUT'],
+    variants: ['FOSCO', 'BRILHO', 'JATEADO/LAMINADO'],
+    fields: ['altura', 'largura']
+  },
+  'PAINEL REVESTIMENTO': {
+    sub: ['MDF', 'ACM', 'CHAPA', 'TELA', 'VIDRO'],
+    fields: ['altura', 'largura', 'profundidade']
+  },
+  'LETRA CAIXA': {
+    sub: ['AÇO GALVANIZADO', 'AÇO INOX', 'IMPRESSÃO 3D', 'PVC EXPANDIDO', 'ACRÍLICO', 'MDF'],
+    fields: ['altura', 'largura', 'profundidade']
+  },
+  'PLACA': {
+    sub: ['ILUMINADA', 'SEM ILUMINAÇÃO'],
+    dependentSub: {
+      'ILUMINADA': ['CHAPA AÇO', 'ACRÍLICO', 'ACM', 'LONA'],
+      'SEM ILUMINAÇÃO': ['CHAPA AÇO', 'ACRÍLICO', 'ACM', 'MDF', 'PS', 'PVC']
+    },
+    fields: ['altura', 'largura', 'profundidade']
+  },
+  'PAINEL DE LED': {
+    fields: ['altura', 'largura']
+  }
+};
+
 export const ServiceEntryModal = ({ isOpen, onClose, onSubmit, editingEntry, clients }: ServiceEntryModalProps) => {
   const [formData, setFormData] = useState({
     client_id: '',
     obra: '',
     local: 'Sky 1' as 'Sky 1' | 'Sky 2',
-    valor: ''
+    valor: '',
+    agencia: '',
+    product_category: '',
+    product_subcategory: '',
+    product_variant: '',
+    altura: '',
+    largura: '',
+    profundidade: '',
+    observacao: ''
   });
 
   React.useEffect(() => {
@@ -152,14 +193,30 @@ export const ServiceEntryModal = ({ isOpen, onClose, onSubmit, editingEntry, cli
         client_id: editingEntry.client_id.toString(),
         obra: editingEntry.obra,
         local: editingEntry.local,
-        valor: maskCurrency(editingEntry.valor.toString().replace('.', ','))
+        valor: maskCurrency(editingEntry.valor.toString().replace('.', ',')),
+        agencia: editingEntry.agencia || '',
+        product_category: editingEntry.product_category || '',
+        product_subcategory: editingEntry.product_subcategory || '',
+        product_variant: editingEntry.product_variant || '',
+        altura: editingEntry.altura || '',
+        largura: editingEntry.largura || '',
+        profundidade: editingEntry.profundidade || '',
+        observacao: editingEntry.observacao || ''
       });
     } else {
       setFormData({
         client_id: '',
         obra: '',
         local: 'Sky 1',
-        valor: ''
+        valor: '',
+        agencia: '',
+        product_category: '',
+        product_subcategory: '',
+        product_variant: '',
+        altura: '',
+        largura: '',
+        profundidade: '',
+        observacao: ''
       });
     }
   }, [editingEntry, isOpen]);
@@ -175,6 +232,8 @@ export const ServiceEntryModal = ({ isOpen, onClose, onSubmit, editingEntry, cli
     await onSubmit(data);
   };
 
+  const selectedCategory = PRODUCT_OPTIONS[formData.product_category];
+
   return (
     <Modal 
       isOpen={isOpen} 
@@ -182,42 +241,165 @@ export const ServiceEntryModal = ({ isOpen, onClose, onSubmit, editingEntry, cli
       title={editingEntry ? 'EDITAR ENTRADA DE SERVIÇO' : 'NOVA ENTRADA DE SERVIÇO'}
     >
       <form onSubmit={handleSubmit} className="p-6 space-y-4">
-        <Select 
-          label="CLIENTE" 
-          icon={<User size={18} />}
-          required
-          value={formData.client_id}
-          onChange={(e: any) => setFormData({ ...formData, client_id: e.target.value })}
-          options={[
-            { value: '', label: 'SELECIONE UM CLIENTE' },
-            ...clients.map(c => ({ value: c.id.toString(), label: (c.razao_social || c.name).toUpperCase() }))
-          ]}
-        />
+        <div className="grid grid-cols-2 gap-4">
+          <Select 
+            label="CLIENTE" 
+            icon={<User size={18} />}
+            required
+            value={formData.client_id}
+            onChange={(e: any) => setFormData({ ...formData, client_id: e.target.value })}
+            options={[
+              { value: '', label: 'SELECIONE UM CLIENTE' },
+              ...clients.map(c => ({ value: c.id.toString(), label: (c.razao_social || c.name).toUpperCase() }))
+            ]}
+          />
+          <Input 
+            label="OBRA" 
+            icon={<Briefcase size={18} />}
+            required
+            value={formData.obra}
+            onChange={(e: any) => setFormData({ ...formData, obra: e.target.value.toUpperCase() })}
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <Select 
+            label="LOCAL" 
+            icon={<MapPin size={18} />}
+            required
+            value={formData.local}
+            onChange={(e: any) => setFormData({ ...formData, local: e.target.value as any })}
+            options={[
+              { value: 'Sky 1', label: 'SKY 1' },
+              { value: 'Sky 2', label: 'SKY 2' }
+            ]}
+          />
+          <Input 
+            label="VALOR (R$)" 
+            icon={<DollarSign size={18} />}
+            required
+            value={formData.valor}
+            onChange={(e: any) => setFormData({ ...formData, valor: maskCurrency(e.target.value) })}
+          />
+        </div>
+
         <Input 
-          label="OBRA" 
-          icon={<Briefcase size={18} />}
-          required
-          value={formData.obra}
-          onChange={(e: any) => setFormData({ ...formData, obra: e.target.value.toUpperCase() })}
+          label="AGÊNCIA (OPCIONAL)" 
+          icon={<Building2 size={18} />}
+          value={formData.agencia}
+          onChange={(e: any) => setFormData({ ...formData, agencia: e.target.value.toUpperCase() })}
         />
-        <Select 
-          label="LOCAL" 
-          icon={<MapPin size={18} />}
-          required
-          value={formData.local}
-          onChange={(e: any) => setFormData({ ...formData, local: e.target.value as any })}
-          options={[
-            { value: 'Sky 1', label: 'SKY 1' },
-            { value: 'Sky 2', label: 'SKY 2' }
-          ]}
-        />
-        <Input 
-          label="VALOR (R$)" 
-          icon={<DollarSign size={18} />}
-          required
-          value={formData.valor}
-          onChange={(e: any) => setFormData({ ...formData, valor: maskCurrency(e.target.value) })}
-        />
+
+        <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800">
+          <h4 className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-4">Detalhes do Produto</h4>
+          
+          <Select 
+            label="PRODUTO"
+            value={formData.product_category}
+            onChange={(e: any) => setFormData({ 
+              ...formData, 
+              product_category: e.target.value,
+              product_subcategory: '',
+              product_variant: '',
+              altura: '',
+              largura: '',
+              profundidade: ''
+            })}
+            options={[
+              { value: '', label: 'SELECIONE UM PRODUTO' },
+              { value: 'ADESIVO', label: 'ADESIVO' },
+              { value: 'LONA', label: 'LONA' },
+              { value: 'PAINEL REVESTIMENTO', label: 'PAINEL REVESTIMENTO' },
+              { value: 'LETRA CAIXA', label: 'LETRA CAIXA' },
+              { value: 'PLACA', label: 'PLACA' },
+              { value: 'PAINEL DE LED', label: 'PAINEL DE LED' }
+            ]}
+          />
+
+          {selectedCategory?.sub && (
+            <div className="mt-4">
+              <Select 
+                label="OPÇÃO"
+                value={formData.product_subcategory}
+                onChange={(e: any) => setFormData({ 
+                  ...formData, 
+                  product_subcategory: e.target.value,
+                  product_variant: ''
+                })}
+                options={[
+                  { value: '', label: 'SELECIONE UMA OPÇÃO' },
+                  ...selectedCategory.sub.map((s: string) => ({ value: s, label: s }))
+                ]}
+              />
+            </div>
+          )}
+
+          {formData.product_category === 'PLACA' && formData.product_subcategory && (
+            <div className="mt-4">
+              <Select 
+                label="MATERIAL"
+                value={formData.product_variant}
+                onChange={(e: any) => setFormData({ ...formData, product_variant: e.target.value })}
+                options={[
+                  { value: '', label: 'SELECIONE O MATERIAL' },
+                  ...(selectedCategory.dependentSub[formData.product_subcategory] || []).map((s: string) => ({ value: s, label: s }))
+                ]}
+              />
+            </div>
+          )}
+
+          {(formData.product_category === 'ADESIVO' || formData.product_category === 'LONA') && formData.product_subcategory && (
+            <div className="mt-4">
+              <Select 
+                label="ACABAMENTO"
+                value={formData.product_variant}
+                onChange={(e: any) => setFormData({ ...formData, product_variant: e.target.value })}
+                options={[
+                  { value: '', label: 'SELECIONE O ACABAMENTO' },
+                  ...selectedCategory.variants.map((v: string) => ({ value: v, label: v }))
+                ]}
+              />
+            </div>
+          )}
+
+          {selectedCategory?.fields && (
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
+              {selectedCategory.fields.includes('altura') && (
+                <Input 
+                  label="ALTURA (m)"
+                  placeholder="0,00"
+                  value={formData.altura}
+                  onChange={(e: any) => setFormData({ ...formData, altura: e.target.value })}
+                />
+              )}
+              {selectedCategory.fields.includes('largura') && (
+                <Input 
+                  label="LARGURA (m)"
+                  placeholder="0,00"
+                  value={formData.largura}
+                  onChange={(e: any) => setFormData({ ...formData, largura: e.target.value })}
+                />
+              )}
+              {selectedCategory.fields.includes('profundidade') && (
+                <Input 
+                  label="PROFUNDIDADE (m)"
+                  placeholder="0,00"
+                  value={formData.profundidade}
+                  onChange={(e: any) => setFormData({ ...formData, profundidade: e.target.value })}
+                />
+              )}
+            </div>
+          )}
+
+          <div className="mt-4">
+            <TextArea 
+              label="OBSERVAÇÃO"
+              value={formData.observacao}
+              onChange={(e: any) => setFormData({ ...formData, observacao: e.target.value.toUpperCase() })}
+              rows={3}
+            />
+          </div>
+        </div>
         
         <div className="flex justify-end gap-3 pt-4 border-t border-zinc-100 dark:border-zinc-800">
           <button 

@@ -138,6 +138,14 @@ export interface ServiceEntry {
   obra: string;
   local: 'Sky 1' | 'Sky 2';
   valor: number;
+  agencia?: string;
+  product_category?: string;
+  product_subcategory?: string;
+  product_variant?: string;
+  altura?: string;
+  largura?: string;
+  profundidade?: string;
+  observacao?: string;
   date: string;
   created_by?: string;
 }

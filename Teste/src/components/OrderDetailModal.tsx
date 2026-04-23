@@ -1,7 +1,7 @@
 import React from 'react';
 import { X, Edit, Trash2, ClipboardList, User, Calendar, CheckCircle2, Info, Check, AlertTriangle, Box } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Order, OrderDetails, ProductionItem } from '../types';
+import { Order, OrderDetails, ProductionItem, ServiceEntry } from '../types';
 import { apiService } from '../services/apiService';
 import { Modal, ConfirmModal, Button, cn } from './Common';
 
@@ -9,6 +9,7 @@ interface OrderDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
   order: Order | null;
+  serviceEntries: ServiceEntry[];
   isAdmin?: boolean;
   onEdit: (order: Order) => void;
   onDelete: (id: string | number) => void;
@@ -19,6 +20,7 @@ export const OrderDetailModal = ({
   isOpen, 
   onClose, 
   order, 
+  serviceEntries,
   isAdmin = false,
   onEdit,
   onDelete,
@@ -28,6 +30,10 @@ export const OrderDetailModal = ({
   const [isUpdating, setIsUpdating] = React.useState(false);
 
   if (!order) return null;
+
+  const linkedEntry = order.service_entry_id 
+    ? serviceEntries.find(e => e.id.toString() === order.service_entry_id?.toString()) 
+    : null;
 
   let details: OrderDetails | null = null;
   try {
@@ -175,6 +181,71 @@ export const OrderDetailModal = ({
               </span>
             </div>
           </div>
+
+          {/* Linked Service Entry Product Details */}
+          {linkedEntry && linkedEntry.product_category && (
+            <div className="p-5 bg-zinc-900 text-white rounded-3xl space-y-4 shadow-xl">
+              <div className="flex items-center gap-2 border-b border-white/10 pb-3">
+                <Box size={18} className="text-zinc-400" />
+                <h3 className="text-xs font-bold uppercase tracking-[0.2em]">Especificações da Obra</h3>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div>
+                  <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Produto</p>
+                  <p className="text-sm font-bold uppercase mt-1">{linkedEntry.product_category}</p>
+                </div>
+                {linkedEntry.product_subcategory && (
+                  <div>
+                    <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Tipo / Opção</p>
+                    <p className="text-sm font-bold uppercase mt-1">{linkedEntry.product_subcategory}</p>
+                  </div>
+                )}
+                {linkedEntry.product_variant && (
+                  <div>
+                    <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Material / Acabamento</p>
+                    <p className="text-sm font-bold uppercase mt-1">{linkedEntry.product_variant}</p>
+                  </div>
+                )}
+                {linkedEntry.agencia && (
+                  <div>
+                    <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Agência</p>
+                    <p className="text-sm font-bold uppercase mt-1">{linkedEntry.agencia}</p>
+                  </div>
+                )}
+              </div>
+
+              {(linkedEntry.altura || linkedEntry.largura || linkedEntry.profundidade) && (
+                <div className="grid grid-cols-3 gap-4 pt-2">
+                  {linkedEntry.altura && (
+                    <div className="bg-white/5 p-3 rounded-2xl border border-white/5">
+                      <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Altura</p>
+                      <p className="text-sm font-bold mt-0.5">{linkedEntry.altura}m</p>
+                    </div>
+                  )}
+                  {linkedEntry.largura && (
+                    <div className="bg-white/5 p-3 rounded-2xl border border-white/5">
+                      <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Largura</p>
+                      <p className="text-sm font-bold mt-0.5">{linkedEntry.largura}m</p>
+                    </div>
+                  )}
+                  {linkedEntry.profundidade && (
+                    <div className="bg-white/5 p-3 rounded-2xl border border-white/5">
+                      <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Profundidade</p>
+                      <p className="text-sm font-bold mt-0.5">{linkedEntry.profundidade}m</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {linkedEntry.observacao && (
+                <div className="bg-white/5 p-4 rounded-2xl border border-white/5">
+                  <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Observações Técnicas</p>
+                  <p className="text-xs font-medium leading-relaxed italic">{linkedEntry.observacao}</p>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Info Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

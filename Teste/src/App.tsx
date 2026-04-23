@@ -1546,17 +1546,13 @@ export default function App() {
         clients={clients}
         orders={orders}
         serviceEntries={serviceEntries}
-        productionProducts={productionProducts}
-        onAddProductionProduct={async (name) => {
-          await apiService.addProductionProduct(name);
-          fetchData();
-        }}
       />
 
       <OrderDetailModal 
         isOpen={!!selectedOrderForDetail}
         onClose={() => setSelectedOrderForDetail(null)}
         order={selectedOrderForDetail}
+        serviceEntries={serviceEntries}
         isAdmin={isAdmin}
         onEdit={(order) => {
           setEditingOrder(order);

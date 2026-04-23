@@ -50,7 +50,7 @@ export const Settings = ({
   const [isImporting, setIsImporting] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const [showConfirmRestore, setShowConfirmRestore] = useState(false);
-  const [showConfirmReset, setShowConfirmReset] = useState(false);
+  const [resetStep, setResetStep] = useState(0);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -177,7 +177,7 @@ export const Settings = ({
       setError('Erro ao resetar banco: ' + err.message);
     } finally {
       setIsResetting(false);
-      setShowConfirmReset(false);
+      setResetStep(0);
     }
   };
 
@@ -550,7 +550,7 @@ export const Settings = ({
             </p>
             
             <button
-              onClick={() => setShowConfirmReset(true)}
+              onClick={() => setResetStep(1)}
               disabled={isResetting}
               className="flex items-center gap-2 px-4 py-2 bg-rose-600 text-white rounded-xl font-bold text-sm hover:bg-rose-700 transition-colors disabled:opacity-50 uppercase"
             >
@@ -659,12 +659,34 @@ export const Settings = ({
       />
 
       <ConfirmModal 
-        isOpen={showConfirmReset}
-        onClose={() => setShowConfirmReset(false)}
-        onConfirm={handleResetDatabase}
-        title="RESET TOTAL DO BANCO"
+        isOpen={resetStep === 1}
+        onClose={() => setResetStep(0)}
+        onConfirm={() => setResetStep(2)}
+        title="RESET TOTAL DO BANCO [1/3]"
         message="VOCÊ TEM CERTEZA? TODOS OS DADOS (PRODUTOS, CLIENTES, ORDENS, ETC.) SERÃO APAGADOS PERMANENTEMENTE. ESTA AÇÃO É IRREVERSÍVEL."
-        confirmText="SIM, APAGAR TUDO"
+        confirmText="SIM, PROSSEGUIR"
+        cancelText="CANCELAR"
+        variant="danger"
+      />
+
+      <ConfirmModal 
+        isOpen={resetStep === 2}
+        onClose={() => setResetStep(0)}
+        onConfirm={() => setResetStep(3)}
+        title="CONFIRMAÇÃO ADICIONAL [2/3]"
+        message="ESTA AÇÃO APAGARÁ TODAS AS TABELAS E REGISTROS. NÃO HÁ VOLTA E NÃO HÁ COMO RECUPERAR OS DADOS APÓS EXCLUÍDOS. DESEJA REALMENTE CONTINUAR?"
+        confirmText="ESTOU CIENTE DOS RISCOS"
+        cancelText="ABORTAR RESET"
+        variant="danger"
+      />
+
+      <ConfirmModal 
+        isOpen={resetStep === 3}
+        onClose={() => setResetStep(0)}
+        onConfirm={handleResetDatabase}
+        title="ÚLTIMO AVISO CRÍTICO [3/3]"
+        message="PERIGO EXTREMO: VOCÊ ESTÁ PRESTES A EXCLUIR TUDO NESTE EXATO MOMENTO. ISSO É ÚTIL APENAS PARA LIMPEZA TOTAL DO SISTEMA. CONFIRMAR DESTRUIÇÃO DEFINITIVA DE DADOS?"
+        confirmText="SIM, APAGAR TUDO AGORA"
         cancelText="CANCELAR"
         variant="danger"
         isLoading={isResetting}

@@ -174,11 +174,7 @@ export const Kanban = ({ orders, serviceEntries, onUpdateStatus, onEdit, onDelet
                     <MapPin size={12} />
                     {entry.local}
                   </div>
-                  <div className="flex items-center justify-between pt-2 border-t border-zinc-50 dark:border-zinc-800">
-                    <div className="flex items-center gap-1 text-emerald-600 font-bold text-[10px]">
-                      <DollarSign size={12} />
-                      R$ {entry.valor.toLocaleString('pt-BR')}
-                    </div>
+                  <div className="flex items-center justify-end pt-2 border-t border-zinc-50 dark:border-zinc-800">
                     <div className="flex items-center gap-1 text-zinc-400 text-[9px]">
                       <Calendar size={12} />
                       {(() => {

@@ -13,8 +13,6 @@ interface OrderModalProps {
   clients: Client[];
   orders: Order[];
   serviceEntries: ServiceEntry[];
-  productionProducts: ProductionProduct[];
-  onAddProductionProduct: (name: string) => Promise<void>;
 }
 
 const IMPRESSION_OPTIONS = ['Impressão 3D', 'Impressão Digital', 'Plotter'];
@@ -34,17 +32,11 @@ export const OrderModal = ({
   editingOrder, 
   clients,
   orders,
-  serviceEntries,
-  productionProducts,
-  onAddProductionProduct
+  serviceEntries
 }: OrderModalProps) => {
   const [step, setStep] = useState(1);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<{ [key: string]: string }>({});
-  const [isAddingPermanentProduct, setIsAddingPermanentProduct] = useState(false);
-  const [permanentProductName, setPermanentProductName] = useState('');
-  const [selectedProductId, setSelectedProductId] = useState('');
-  const [productQuantity, setProductQuantity] = useState('1');
   const formRef = useRef<HTMLFormElement>(null);
   const [formData, setFormData] = useState({
     title: '',
@@ -55,7 +47,6 @@ export const OrderModal = ({
     details: {
       entry_date: new Date().toISOString().split('T')[0],
       delivery_date: '',
-      products: [],
       impression_3d: { items: [] },
       cuts_folds: { items: [] },
       welds: { items: [] },
@@ -92,7 +83,6 @@ export const OrderModal = ({
       const initialDetails: OrderDetails = {
         entry_date: details?.entry_date || new Date().toISOString().split('T')[0],
         delivery_date: details?.delivery_date || '',
-        products: details?.products || [],
         impression_3d: details?.impression_3d ? { items: details.impression_3d.items.map((i: any) => typeof i === 'string' ? { name: i, quantity: 1 } : i) } : { items: [] },
         cuts_folds: details?.cuts_folds ? { items: details.cuts_folds.items.map((i: any) => typeof i === 'string' ? { name: i, quantity: 1 } : i) } : { items: [] },
         welds: details?.welds ? { items: details.welds.items.map((i: any) => typeof i === 'string' ? { name: i, quantity: 1 } : i) } : { items: [] },
@@ -145,7 +135,6 @@ export const OrderModal = ({
         details: {
           entry_date: new Date().toISOString().split('T')[0],
           delivery_date: '',
-          products: [],
           impression_3d: { items: [] },
           cuts_folds: { items: [] },
           welds: { items: [] },
@@ -377,53 +366,6 @@ export const OrderModal = ({
     }
   };
 
-  const handleAddProductToOrder = () => {
-    if (!selectedProductId) return;
-    const product = productionProducts.find(p => p.id.toString() === selectedProductId);
-    if (!product) return;
-
-    const qty = parseFloat(productQuantity.replace(',', '.')) || 1;
-    
-    setFormData(prev => {
-      const currentProducts = prev.details.products || [];
-      const updatedProducts = [...currentProducts, { name: product.name, quantity: qty }];
-      return {
-        ...prev,
-        details: {
-          ...prev.details,
-          products: updatedProducts
-        }
-      };
-    });
-    setSelectedProductId('');
-    setProductQuantity('1');
-  };
-
-  const handleRemoveProductFromOrder = (index: number) => {
-    setFormData(prev => {
-      const currentProducts = prev.details.products || [];
-      const updatedProducts = currentProducts.filter((_, i) => i !== index);
-      return {
-        ...prev,
-        details: {
-          ...prev.details,
-          products: updatedProducts
-        }
-      };
-    });
-  };
-
-  const handleAddNewProductToSystem = async () => {
-    if (!permanentProductName.trim()) return;
-    try {
-      await onAddProductionProduct(permanentProductName.toUpperCase());
-      setPermanentProductName('');
-      setIsAddingPermanentProduct(false);
-    } catch (err: any) {
-      setError(err.message);
-    }
-  };
-
   const renderStep = () => {
     switch (step) {
       case 1:
@@ -439,76 +381,6 @@ export const OrderModal = ({
                 ...serviceEntries.map(e => ({ value: e.id.toString(), label: `${e.obra} - ${e.client_name}`.toUpperCase() }))
               ]}
             />
-
-            <div className="space-y-3 p-4 bg-zinc-50 dark:bg-zinc-900/50 rounded-2xl border border-zinc-100 dark:border-zinc-800">
-              <div className="flex items-center justify-between mb-1">
-                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-1">Produtos da Ordem</label>
-                <button 
-                  type="button"
-                  onClick={() => setIsAddingPermanentProduct(true)}
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] font-bold text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 bg-white dark:bg-zinc-800 rounded-xl transition-all uppercase border border-zinc-200 dark:border-zinc-700 shadow-sm active:scale-95"
-                >
-                  <Plus size={14} />
-                  CRIAR PRODUTO
-                </button>
-              </div>
-              
-              <div className="flex items-end gap-2">
-                <div className="flex-1">
-                  <Select
-                    label="Selecionar Produto"
-                    value={selectedProductId}
-                    onChange={e => setSelectedProductId(e.target.value)}
-                    options={[
-                      { value: '', label: 'SELECIONE UM PRODUTO' },
-                      ...productionProducts.map(p => ({ value: p.id.toString(), label: p.name.toUpperCase() }))
-                    ]}
-                  />
-                </div>
-                <div className="w-24">
-                  <Input
-                    label="Qtd"
-                    value={productQuantity}
-                    onChange={e => setProductQuantity(e.target.value)}
-                  />
-                </div>
-                <Button 
-                  type="button" 
-                  variant="primary" 
-                  className="h-10 px-4 text-xs font-bold shrink-0"
-                  onClick={handleAddProductToOrder}
-                >
-                  ADICIONAR ITEM
-                </Button>
-              </div>
-
-              <div className="space-y-1 mt-2">
-                {formData.details.products?.map((p, idx) => (
-                  <div key={idx} className="flex items-center justify-between p-2 bg-white dark:bg-zinc-900 rounded-lg border border-zinc-100 dark:border-zinc-800">
-                    <div className="flex items-center gap-2">
-                      <Box size={14} className="text-zinc-400" />
-                      <span className="text-xs font-bold uppercase">{p.name}</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span className="text-[10px] font-bold text-zinc-400 bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded">{p.quantity} UN</span>
-                      <button 
-                        type="button"
-                        onClick={() => handleRemoveProductFromOrder(idx)}
-                        className="text-rose-500 hover:text-rose-600 transition-colors"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-                {(!formData.details.products || formData.details.products.length === 0) && (
-                  <div className="text-center py-4 bg-white/50 dark:bg-zinc-900/30 rounded-xl border border-dashed border-zinc-200 dark:border-zinc-800">
-                    <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest italic">Nenhum produto selecionado</p>
-                  </div>
-                )}
-              </div>
-            </div>
-
             <Input
               label="Título da Ordem"
               icon={<Type size={18} />}
@@ -832,52 +704,6 @@ export const OrderModal = ({
             </div>
           </div>
         </form>
-      </div>
-
-      <NewProductModal 
-        isOpen={isAddingPermanentProduct}
-        onClose={() => setIsAddingPermanentProduct(false)}
-        onAdd={handleAddNewProductToSystem}
-        name={permanentProductName}
-        setName={setPermanentProductName}
-      />
-    </Modal>
-  );
-};
-
-interface NewProductModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onAdd: () => void;
-  name: string;
-  setName: (val: string) => void;
-}
-
-const NewProductModal = ({ isOpen, onClose, onAdd, name, setName }: NewProductModalProps) => {
-  return (
-    <Modal isOpen={isOpen} onClose={onClose} title="CRIAR NOVO PRODUTO">
-      <div className="p-6 space-y-4">
-        <Input 
-          label="Nome do Produto" 
-          icon={<Package size={18} />}
-          value={name}
-          onChange={(e: any) => setName(e.target.value.toUpperCase())}
-          placeholder="EX: LETRA CAIXA"
-          autoFocus
-          required
-        />
-        <div className="flex justify-end gap-3 pt-4 border-t border-zinc-100 dark:border-zinc-800">
-          <button 
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 text-sm font-bold text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 transition-colors uppercase"
-          >
-            CANCELAR
-          </button>
-          <Button type="button" onClick={onAdd}>
-            SALVAR PRODUTO
-          </Button>
-        </div>
       </div>
     </Modal>
   );
