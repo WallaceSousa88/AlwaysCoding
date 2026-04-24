@@ -40,7 +40,7 @@ export const GenericList = ({
   const [inputValue, setInputValue] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const debouncedSearchTerm = useDebounce(inputValue, 300);
-  const [visibleColumns, setVisibleColumns] = useState<string[]>(columns.map(c => c.key));
+  const [visibleColumns, setVisibleColumns] = useState<string[]>(columns.map(c => c.key).filter(k => k.toLowerCase() !== 'id'));
   const [isColumnSelectorOpen, setIsColumnSelectorOpen] = useState(false);
   const columnSelectorRef = useRef<HTMLDivElement>(null);
 

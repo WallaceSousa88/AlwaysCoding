@@ -76,6 +76,7 @@ export const ServiceEntry = ({
         hideTitle={true}
         items={filteredEntries}
         columns={[
+          { key: 'id', label: 'ID', mono: true },
           { 
             key: 'date', 
             label: 'DATA',

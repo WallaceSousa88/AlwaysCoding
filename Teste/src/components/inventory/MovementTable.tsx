@@ -12,6 +12,7 @@ export const MovementTable = ({ movements }: MovementTableProps) => {
     <table className="w-full text-left border-collapse">
       <thead>
         <tr className="bg-zinc-50/50 dark:bg-zinc-800/50">
+          <th className="px-6 py-3 text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">ID</th>
           <th className="px-6 py-3 text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Data</th>
           <th className="px-6 py-3 text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Tipo</th>
           <th className="px-6 py-3 text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Produto</th>
@@ -36,6 +37,7 @@ export const MovementTable = ({ movements }: MovementTableProps) => {
 
           return (
             <tr key={m.id} className="hover:bg-zinc-50/50 dark:hover:bg-zinc-800/50 transition-colors">
+              <td className="px-6 py-4 text-sm text-zinc-500 dark:text-zinc-400 font-mono">#{m.id}</td>
               <td className="px-6 py-4 text-sm text-zinc-500 dark:text-zinc-400">
                 {(() => {
                   try {
@@ -102,7 +104,7 @@ export const MovementTable = ({ movements }: MovementTableProps) => {
         })}
         {movements.length === 0 && (
           <tr>
-            <td colSpan={9} className="px-6 py-8 text-center text-zinc-400 dark:text-zinc-500 text-sm italic uppercase font-bold">
+            <td colSpan={10} className="px-6 py-8 text-center text-zinc-400 dark:text-zinc-500 text-sm italic uppercase font-bold">
               NENHUMA MOVIMENTAÇÃO ENCONTRADA.
             </td>
           </tr>

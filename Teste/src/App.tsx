@@ -45,7 +45,7 @@ import { ServiceEntry } from './components/ServiceEntry';
 import { GenericList } from './components/GenericList';
 import { Settings as SettingsView } from './components/Settings';
 import { Assets } from './components/Assets';
-import { SidebarItem, cn, ErrorAlert, Button } from './components/Common';
+import { SidebarItem, cn, ErrorAlert, Button, Input } from './components/Common';
 import { OrderModal } from './components/OrderModal';
 import { OrderDetailModal } from './components/OrderDetailModal';
 import { ClientModal, SupplierModal } from './components/EntityModals';
@@ -53,6 +53,7 @@ import { AssetModal } from './components/assets/AssetModals';
 import { validateEmail, validateCPF, validateCNPJ, validatePhone, validateCEP } from './lib/validation';
 import { FinancialDetailModal } from './components/FinancialDetailModal';
 import { ConfirmModal } from './components/Common';
+import { ProfileModal } from './components/ProfileModal';
 
 // --- Login Component ---
 
@@ -151,31 +152,16 @@ const Login = ({ onLogin }: { onLogin: () => void }) => {
             </div>
           </div>
 
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-1">Senha</label>
-            <div className="relative">
-              <div className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400">
-                <ShieldCheck size={18} />
-              </div>
-              <input 
-                type={showPassword ? "text" : "password"}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full pl-10 pr-12 py-3 bg-zinc-50 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 rounded-xl focus:ring-2 focus:ring-zinc-900 dark:focus:ring-zinc-100 outline-none transition-all text-sm font-medium"
-                placeholder="••••••••"
-                required
-              />
-              {password.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors"
-                >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
-              )}
-            </div>
-          </div>
+          <Input 
+            label="Senha"
+            type={showPassword ? "text" : "password"}
+            value={password}
+            onChange={(e: any) => setPassword(e.target.value)}
+            placeholder="••••••••"
+            required
+            endIcon={showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            onEndIconClick={() => setShowPassword(!showPassword)}
+          />
 
           <Button 
             type="submit"
@@ -496,6 +482,7 @@ export default function App() {
   };
   const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
   const [editingAsset, setEditingAsset] = useState<Asset | null>(null);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isServiceEntryModalOpen, setIsServiceEntryModalOpen] = useState(false);
   const [editingServiceEntry, setEditingServiceEntry] = useState<ServiceEntryType | null>(null);
   const [selectedOrderForDetail, setSelectedOrderForDetail] = useState<Order | null>(null);
@@ -1227,6 +1214,7 @@ export default function App() {
             document: c.tipo_cliente === 'PF' ? c.cpf : c.cnpj
           }))} 
           columns={[
+            { key: 'id', label: 'ID', mono: true },
             { key: 'tipo_cliente', label: 'TIPO' },
             { key: 'display_name', label: 'NOME / RAZÃO SOCIAL' },
             { key: 'document', label: 'CPF / CNPJ' },
@@ -1257,6 +1245,7 @@ export default function App() {
             document: s.tipo === 'PF' ? s.cpf : s.cnpj
           }))} 
           columns={[
+            { key: 'id', label: 'ID', mono: true },
             { key: 'tipo', label: 'TIPO' },
             { key: 'display_name', label: 'NOME / RAZÃO SOCIAL' },
             { key: 'document', label: 'CPF / CNPJ' },
@@ -1303,6 +1292,7 @@ export default function App() {
             date_fmt: new Date(e.date).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
           }))} 
           columns={[
+            { key: 'id', label: 'ID', mono: true },
             { key: 'issue_date_fmt', label: 'DATA EMISSÃO' },
             { key: 'date_fmt', label: 'DATA MOVIMENTO' },
             { key: 'doc_number', label: 'DOC. FISCAL' },
@@ -1326,6 +1316,7 @@ export default function App() {
             created_at_fmt: new Date(l.created_at).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
           }))} 
           columns={[
+            { key: 'id', label: 'ID', mono: true },
             { key: 'created_at_fmt', label: 'DATA/HORA' },
             { key: 'user_name', label: 'USUÁRIO' },
             { key: 'action', label: 'AÇÃO' },
@@ -1436,30 +1427,27 @@ export default function App() {
           </nav>
 
           <div className="p-4 border-t border-zinc-100 dark:border-zinc-800">
-            <div className={cn("flex items-center gap-3 px-2 py-3 rounded-lg bg-zinc-50 dark:bg-zinc-900/50", isSidebarCollapsed && "justify-center px-0")}>
+            <button 
+              onClick={() => setIsProfileModalOpen(true)}
+              className={cn(
+                "w-full flex items-center gap-3 px-2 py-3 rounded-xl bg-zinc-50 dark:bg-zinc-900/50 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all group", 
+                isSidebarCollapsed && "justify-center px-0"
+              )}
+            >
               {user?.photoURL ? (
                 <img src={user.photoURL} alt={user.displayName || ''} className="w-8 h-8 rounded-full flex-shrink-0" referrerPolicy="no-referrer" />
               ) : (
-                <div className="w-8 h-8 rounded-full bg-zinc-200 dark:bg-zinc-700 flex items-center justify-center text-xs font-bold text-zinc-600 dark:text-zinc-300 flex-shrink-0">
-                  {user?.displayName?.charAt(0) || 'U'}
+                <div className="w-8 h-8 rounded-full bg-zinc-200 dark:bg-zinc-700 flex items-center justify-center text-xs font-bold text-zinc-600 dark:text-zinc-300 flex-shrink-0 group-hover:bg-zinc-900 group-hover:text-white dark:group-hover:bg-white dark:group-hover:text-zinc-900 transition-colors">
+                  {user?.displayName?.charAt(0) || user?.email?.charAt(0).toUpperCase() || 'U'}
                 </div>
               )}
               {!isSidebarCollapsed && (
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100 truncate uppercase">{user?.displayName || 'Usuário'}</p>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400 truncate">{user?.email}</p>
+                <div className="flex-1 min-w-0 text-left leading-tight">
+                  <p className="text-sm font-bold text-zinc-900 dark:text-zinc-100 truncate uppercase">{currentUserProfile?.name || 'Usuário'}</p>
+                  <p className="text-[10px] text-zinc-500 dark:text-zinc-400 truncate uppercase tracking-widest font-bold">{currentUserProfile?.role || 'Meu Perfil'}</p>
                 </div>
               )}
-              {!isSidebarCollapsed && (
-                <button 
-                  onClick={() => signOut(auth)}
-                  className="p-1.5 text-zinc-400 hover:text-rose-500 transition-colors"
-                  title="Sair"
-                >
-                  <X size={18} />
-                </button>
-              )}
-            </div>
+            </button>
           </div>
         </div>
       </aside>
@@ -1528,6 +1516,13 @@ export default function App() {
           </AnimatePresence>
         </div>
       </main>
+
+      <ProfileModal 
+        isOpen={isProfileModalOpen}
+        onClose={() => setIsProfileModalOpen(false)}
+        currentUser={currentUserProfile || null}
+        firebaseUser={user}
+      />
 
       <OrderModal 
         isOpen={isOrderModalOpen}

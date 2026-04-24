@@ -266,7 +266,7 @@ export const Settings = ({
     setUserFormData({
       name: user.name,
       username: (user as any).username || '',
-      password: isSuperAdmin ? ((user as any).password || '') : '', 
+      password: '', // Never show existing password
       role: user.role || 'Usuário',
       permissions: user.permissions || []
     });
@@ -336,6 +336,7 @@ export const Settings = ({
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-zinc-100 dark:border-zinc-800">
+                  <th className="py-3 px-4 text-[10px] font-bold text-zinc-400 uppercase tracking-widest">ID</th>
                   <th className="py-3 px-4 text-[10px] font-bold text-zinc-400 uppercase tracking-widest">NOME</th>
                   <th className="py-3 px-4 text-[10px] font-bold text-zinc-400 uppercase tracking-widest">USUÁRIO</th>
                   <th className="py-3 px-4 text-[10px] font-bold text-zinc-400 uppercase tracking-widest">CARGO/PERMISSÃO</th>
@@ -345,6 +346,7 @@ export const Settings = ({
               <tbody>
                 {users.map((user) => (
                   <tr key={user.id} className="border-b border-zinc-50 dark:border-zinc-900/50 hover:bg-zinc-50/50 dark:hover:bg-zinc-900/30 transition-colors">
+                    <td className="py-3 px-4 text-sm text-zinc-500 dark:text-zinc-400 font-mono">#{user.id}</td>
                     <td className="py-3 px-4 text-sm font-medium uppercase">{user.name}</td>
                     <td className="py-3 px-4 text-sm text-zinc-500 dark:text-zinc-400 uppercase">{(user as any).username || '-'}</td>
                     <td className="py-3 px-4">
@@ -588,17 +590,21 @@ export const Settings = ({
               required
             />
             <Input 
-              label="Senha"
+              label={editingUser ? "Nova Senha (Opcional)" : "Senha Temporária"}
               type={showPassword ? "text" : "password"}
-              value={editingUser && !isSuperAdmin ? "" : userFormData.password}
+              value={userFormData.password}
               onChange={(e: any) => setUserFormData({ ...userFormData, password: e.target.value })}
-              placeholder={editingUser && !isSuperAdmin ? "********" : "••••••••"}
+              placeholder={editingUser ? "DEIXE EM BRANCO PARA MANTER" : "••••••••"}
               required={!editingUser}
-              disabled={editingUser && !isSuperAdmin}
-              endIcon={!editingUser || isSuperAdmin ? (userFormData.password ? (showPassword ? <EyeOff size={18} /> : <Eye size={18} />) : null) : <ShieldCheck size={18} />}
-              onEndIconClick={() => (!editingUser || isSuperAdmin) && setShowPassword(!showPassword)}
+              endIcon={userFormData.password ? (showPassword ? <EyeOff size={18} /> : <Eye size={18} />) : <ShieldCheck size={18} />}
+              onEndIconClick={() => userFormData.password && setShowPassword(!showPassword)}
             />
           </div>
+          {editingUser && (
+            <p className="text-[9px] text-zinc-500 font-bold uppercase tracking-widest px-1">
+              * Por segurança, as senhas são criptografadas e não podem ser visualizadas. Se o usuário esqueceu a senha, você pode definir uma nova acima.
+            </p>
+          )}
           <div className="space-y-3">
             <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-1">Permissões de Acesso</label>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl border border-zinc-100 dark:border-zinc-800">
