@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, ChevronLeft, ChevronRight, Plus, Trash2, Check, AlertTriangle, Type, User, Calendar, FileText, Thermometer, Box, Briefcase, Package } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Plus, Trash2, Check, AlertTriangle, Type, User, Calendar, FileText, Thermometer, Box, Briefcase, Package, Upload, Paperclip, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Client, Order, OrderStatus, OrderDetails, ProductionItem, ServiceEntry, ProductionProduct } from '../types';
 import { KANBAN_COLUMNS } from '../constants';
@@ -36,8 +36,10 @@ export const OrderModal = ({
 }: OrderModalProps) => {
   const [step, setStep] = useState(1);
   const [error, setError] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<{ [key: string]: string }>({});
   const formRef = useRef<HTMLFormElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -47,6 +49,8 @@ export const OrderModal = ({
     details: {
       entry_date: new Date().toISOString().split('T')[0],
       delivery_date: '',
+      attachment: '',
+      attachment_name: '',
       impression_3d: { items: [] },
       cuts_folds: { items: [] },
       welds: { items: [] },
@@ -83,6 +87,8 @@ export const OrderModal = ({
       const initialDetails: OrderDetails = {
         entry_date: details?.entry_date || new Date().toISOString().split('T')[0],
         delivery_date: details?.delivery_date || '',
+        attachment: details?.attachment || '',
+        attachment_name: details?.attachment_name || '',
         impression_3d: details?.impression_3d ? { items: details.impression_3d.items.map((i: any) => typeof i === 'string' ? { name: i, quantity: 1 } : i) } : { items: [] },
         cuts_folds: details?.cuts_folds ? { items: details.cuts_folds.items.map((i: any) => typeof i === 'string' ? { name: i, quantity: 1 } : i) } : { items: [] },
         welds: details?.welds ? { items: details.welds.items.map((i: any) => typeof i === 'string' ? { name: i, quantity: 1 } : i) } : { items: [] },
@@ -135,6 +141,8 @@ export const OrderModal = ({
         details: {
           entry_date: new Date().toISOString().split('T')[0],
           delivery_date: '',
+          attachment: '',
+          attachment_name: '',
           impression_3d: { items: [] },
           cuts_folds: { items: [] },
           welds: { items: [] },
@@ -160,6 +168,43 @@ export const OrderModal = ({
       setStep(1);
     }
   }, [editingOrder, isOpen]);
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    setError(null);
+
+    const formDataUpload = new FormData();
+    formDataUpload.append('file', file);
+    formDataUpload.append('category', 'projects');
+
+    try {
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formDataUpload
+      });
+
+      if (!response.ok) throw new Error('Falha no upload');
+
+      const data = await response.json();
+      setFormData(prev => ({
+        ...prev,
+        details: {
+          ...prev.details,
+          attachment: data.url,
+          attachment_name: data.name
+        }
+      }));
+    } catch (err) {
+      console.error(err);
+      setError('ERRO AO ENVIAR ARQUIVO. TENTE NOVAMENTE.');
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
 
   const handleNext = () => {
     setError(null);
@@ -432,6 +477,55 @@ export const OrderModal = ({
               onChange={(e: any) => setFormData({...formData, description: e.target.value.toUpperCase()})}
               error={fieldErrors.description}
             />
+
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-1">
+                Anexos do Projeto (Opcional)
+              </label>
+              <input 
+                type="file" 
+                ref={fileInputRef}
+                className="hidden" 
+                onChange={handleFileChange}
+              />
+              
+              {formData.details.attachment ? (
+                <div className="flex items-center justify-between p-3 bg-zinc-100 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700">
+                  <div className="flex items-center gap-3 overflow-hidden">
+                    <Paperclip size={18} className="text-zinc-500 flex-shrink-0" />
+                    <span className="text-xs font-bold text-zinc-900 dark:text-zinc-100 truncate uppercase">
+                      {formData.details.attachment_name || 'ARQUIVO ANEXADO'}
+                    </span>
+                  </div>
+                  <button 
+                    type="button"
+                    onClick={() => setFormData(prev => ({ ...prev, details: { ...prev.details, attachment: '', attachment_name: '' } }))}
+                    className="p-1 px-2 text-[10px] font-bold text-rose-500 hover:bg-rose-100 dark:hover:bg-rose-500/10 rounded-lg transition-colors uppercase"
+                  >
+                    Remover
+                  </button>
+                </div>
+              ) : (
+                <button 
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploading}
+                  className="w-full py-4 border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl text-zinc-400 hover:text-zinc-600 hover:border-zinc-400 transition-all flex flex-col items-center justify-center gap-2"
+                >
+                  {isUploading ? (
+                    <>
+                      <Loader2 size={24} className="animate-spin text-zinc-400" />
+                      <span className="text-[10px] font-bold uppercase tracking-widest">Enviando...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Upload size={24} />
+                      <span className="text-[10px] font-bold uppercase tracking-widest">Anexar Arquivo do Projeto</span>
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
           </div>
         );
       case 2:

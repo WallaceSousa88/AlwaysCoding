@@ -9,9 +9,14 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const uploadsDir = path.join(process.cwd(), 'uploads');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-}
+const projectsDir = path.join(uploadsDir, 'projects');
+const invoicesDir = path.join(uploadsDir, 'invoices');
+
+[uploadsDir, projectsDir, invoicesDir].forEach(dir => {
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+});
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
@@ -32,11 +37,15 @@ async function startServer() {
     if (!req.file) return res.status(400).json({ error: 'Nenhum arquivo enviado' });
 
     try {
+      const category = req.body.category || '';
+      const targetDir = category === 'projects' ? projectsDir : (category === 'invoices' ? invoicesDir : uploadsDir);
+      
       const isImage = req.file.mimetype.startsWith('image/');
       const originalName = req.file.originalname;
       const extension = path.extname(originalName) || (isImage ? '.webp' : '');
-      const fileName = `file_${Date.now()}${isImage ? '.webp' : extension}`;
-      const filePath = path.join(uploadsDir, fileName);
+      const baseName = path.basename(originalName, extension).replace(/[^a-z0-9]/gi, '_').toLowerCase();
+      const fileName = `${baseName}_${Date.now()}${isImage ? '.webp' : extension}`;
+      const filePath = path.join(targetDir, fileName);
 
       if (isImage) {
         await sharp(req.file.buffer)
@@ -47,7 +56,8 @@ async function startServer() {
         fs.writeFileSync(filePath, req.file.buffer);
       }
 
-      res.json({ url: `/uploads/${fileName}` });
+      const relativeUrl = category ? `/uploads/${category}/${fileName}` : `/uploads/${fileName}`;
+      res.json({ url: relativeUrl, name: originalName });
     } catch (error) {
       console.error('Erro no upload:', error);
       res.status(500).json({ error: 'Erro ao processar arquivo' });

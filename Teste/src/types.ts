@@ -118,6 +118,8 @@ export interface ProductionItem {
 export interface OrderDetails {
   entry_date: string;
   delivery_date: string;
+  attachment?: string;
+  attachment_name?: string;
   products?: { name: string; quantity: number }[];
   completed_items?: string[]; // Array of item names that are finished
   impression_3d: { items: ProductionItem[] };

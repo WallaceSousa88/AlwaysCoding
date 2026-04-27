@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Edit, Trash2, ClipboardList, User, Calendar, CheckCircle2, Info, Check, AlertTriangle, Box } from 'lucide-react';
+import { X, Edit, Trash2, ClipboardList, User, Calendar, CheckCircle2, Info, Check, AlertTriangle, Box, Download, FileSymlink } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Order, OrderDetails, ProductionItem, ServiceEntry } from '../types';
 import { apiService } from '../services/apiService';
@@ -365,6 +365,36 @@ export const OrderDetailModal = ({
               <span>CONCLUÍDO</span>
             </div>
           </div>
+
+          {/* Project Attachment Download */}
+          {details?.attachment && (
+            <div className="pt-6 border-t border-zinc-100 dark:border-zinc-800">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-5 bg-gradient-to-br from-zinc-50 to-white dark:from-zinc-800/30 dark:to-zinc-900 border border-zinc-200 dark:border-zinc-700/50 rounded-3xl group transition-all hover:border-zinc-400 dark:hover:border-zinc-600">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-zinc-900 dark:bg-zinc-100 flex items-center justify-center text-white dark:text-zinc-900 shadow-lg shadow-zinc-900/10 dark:shadow-none">
+                    <FileSymlink size={24} />
+                  </div>
+                  <div>
+                    <h4 className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest mb-0.5">Anexo do Projeto</h4>
+                    <p className="text-sm font-bold text-zinc-900 dark:text-zinc-100 uppercase truncate max-w-[200px] md:max-w-md">
+                      {details.attachment_name || 'Projeto Digital'}
+                    </p>
+                  </div>
+                </div>
+                
+                <a 
+                  href={details.attachment} 
+                  download={details.attachment_name} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 px-6 py-3 bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 rounded-2xl text-xs font-bold uppercase tracking-widest hover:scale-[1.02] active:scale-[0.98] transition-all shadow-md"
+                >
+                  <Download size={16} />
+                  Baixar Projeto
+                </a>
+              </div>
+            </div>
+          )}
         </div>
       </Modal>
 
