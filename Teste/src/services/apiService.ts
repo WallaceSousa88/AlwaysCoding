@@ -477,6 +477,18 @@ export const apiService = {
       handleFirestoreError(error, OperationType.DELETE, `clients/${id}`);
     }
   },
+  getClient: async (id: string | number) => {
+    try {
+      const docRef = doc(db, 'clients', String(id));
+      const snap = await getDoc(docRef);
+      if (snap.exists()) {
+        return { id: snap.id, ...snap.data() } as Client;
+      }
+      return null;
+    } catch (error) {
+      handleFirestoreError(error, OperationType.GET, `clients/${id}`);
+    }
+  },
 
   // Suppliers
   getSuppliers: async () => {

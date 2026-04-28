@@ -336,7 +336,6 @@ export const Settings = ({
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-zinc-100 dark:border-zinc-800">
-                  <th className="py-3 px-4 text-[10px] font-bold text-zinc-400 uppercase tracking-widest">ID</th>
                   <th className="py-3 px-4 text-[10px] font-bold text-zinc-400 uppercase tracking-widest">NOME</th>
                   <th className="py-3 px-4 text-[10px] font-bold text-zinc-400 uppercase tracking-widest">USUÁRIO</th>
                   <th className="py-3 px-4 text-[10px] font-bold text-zinc-400 uppercase tracking-widest">CARGO/PERMISSÃO</th>
@@ -346,7 +345,6 @@ export const Settings = ({
               <tbody>
                 {users.map((user) => (
                   <tr key={user.id} className="border-b border-zinc-50 dark:border-zinc-900/50 hover:bg-zinc-50/50 dark:hover:bg-zinc-900/30 transition-colors">
-                    <td className="py-3 px-4 text-sm text-zinc-500 dark:text-zinc-400 font-mono">#{user.id}</td>
                     <td className="py-3 px-4 text-sm font-medium uppercase">{user.name}</td>
                     <td className="py-3 px-4 text-sm text-zinc-500 dark:text-zinc-400 uppercase">{(user as any).username || '-'}</td>
                     <td className="py-3 px-4">

@@ -131,9 +131,19 @@ export const Inventory = ({
     return saved ? JSON.parse(saved) : DEFAULT_COLUMNS;
   });
 
+  const DEFAULT_MOVEMENT_COLUMNS = ['date', 'type', 'product_name', 'quantity', 'supplier_name', 'location_destination', 'doc_reason', 'xml', 'attachments'];
+  const [visibleMovementColumns, setVisibleMovementColumns] = useState<string[]>(() => {
+    const saved = localStorage.getItem('inventory_movement_visible_columns');
+    return saved ? JSON.parse(saved) : DEFAULT_MOVEMENT_COLUMNS;
+  });
+
   useEffect(() => {
     localStorage.setItem('inventory_visible_columns', JSON.stringify(visibleColumns));
   }, [visibleColumns]);
+
+  useEffect(() => {
+    localStorage.setItem('inventory_movement_visible_columns', JSON.stringify(visibleMovementColumns));
+  }, [visibleMovementColumns]);
 
   const [isColumnSelectorOpen, setIsColumnSelectorOpen] = useState(false);
   const columnSelectorRef = useRef<HTMLDivElement>(null);
@@ -161,6 +171,19 @@ export const Inventory = ({
     { id: 'total_value', label: 'Valor Total' },
     { id: 'min_quantity', label: 'Mínimo' },
     { id: 'status', label: 'Status' }
+  ];
+
+  const ALL_MOVEMENT_COLUMNS = [
+    { id: 'id', label: 'ID' },
+    { id: 'date', label: 'Data' },
+    { id: 'type', label: 'Tipo' },
+    { id: 'product_name', label: 'Produto' },
+    { id: 'quantity', label: 'Quantidade' },
+    { id: 'supplier_name', label: 'Fornecedor' },
+    { id: 'location_destination', label: 'Origem/Destino' },
+    { id: 'doc_reason', label: 'Doc/Motivo' },
+    { id: 'xml', label: 'XML' },
+    { id: 'attachments', label: 'Anexos' }
   ];
   
   const [formData, setFormData] = useState({
@@ -690,25 +713,25 @@ export const Inventory = ({
             setEndDate={setEndDate}
           />
           <div className="flex items-center gap-3 flex-wrap w-full md:w-auto py-1 -mx-2 px-2 md:mx-0 md:px-0">
-            {activeSubTab === 'products' && (
-              <div className="relative" ref={columnSelectorRef}>
-                <button 
-                  onClick={() => setIsColumnSelectorOpen(!isColumnSelectorOpen)}
-                  className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-zinc-600 bg-zinc-100 rounded-xl hover:bg-zinc-200 transition-colors dark:text-zinc-300 dark:bg-zinc-800 dark:hover:bg-zinc-700 uppercase"
-                >
-                  <Settings size={18} />
-                  Colunas
-                </button>
-                <AnimatePresence>
-                  {isColumnSelectorOpen && (
-                    <motion.div 
-                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                      className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-xl z-[160] overflow-hidden p-2"
-                    >
-                      <div className="space-y-1">
-                        {ALL_COLUMNS.map(col => (
+            <div className="relative" ref={columnSelectorRef}>
+              <button 
+                onClick={() => setIsColumnSelectorOpen(!isColumnSelectorOpen)}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-zinc-600 bg-zinc-100 rounded-xl hover:bg-zinc-200 transition-colors dark:text-zinc-300 dark:bg-zinc-800 dark:hover:bg-zinc-700 uppercase"
+              >
+                <Settings size={18} />
+                Colunas
+              </button>
+              <AnimatePresence>
+                {isColumnSelectorOpen && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-xl z-[160] overflow-hidden p-2"
+                  >
+                    <div className="space-y-1">
+                      {activeSubTab === 'products' ? (
+                        ALL_COLUMNS.map(col => (
                           <label key={col.id} className="flex items-center gap-3 px-3 py-2 hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded-lg cursor-pointer transition-colors group">
                             <input 
                               type="checkbox"
@@ -726,13 +749,33 @@ export const Inventory = ({
                             />
                             <span className="text-sm text-zinc-600 dark:text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-zinc-100 transition-colors">{col.label}</span>
                           </label>
-                        ))}
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            )}
+                        ))
+                      ) : (
+                        ALL_MOVEMENT_COLUMNS.map(col => (
+                          <label key={col.id} className="flex items-center gap-3 px-3 py-2 hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded-lg cursor-pointer transition-colors group">
+                            <input 
+                              type="checkbox"
+                              checked={visibleMovementColumns.includes(col.id)}
+                              onChange={() => {
+                                if (visibleMovementColumns.includes(col.id)) {
+                                  if (visibleMovementColumns.length > 1) {
+                                    setVisibleMovementColumns(visibleMovementColumns.filter(c => c !== col.id));
+                                  }
+                                } else {
+                                  setVisibleMovementColumns([...visibleMovementColumns, col.id]);
+                                }
+                              }}
+                              className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100 focus:ring-zinc-900 dark:focus:ring-zinc-100"
+                            />
+                            <span className="text-sm text-zinc-600 dark:text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-zinc-100 transition-colors uppercase">{col.label}</span>
+                          </label>
+                        ))
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
             <ExportButtons 
               activeSubTab={activeSubTab}
               onPdfClick={() => {
@@ -767,7 +810,10 @@ export const Inventory = ({
               isAdmin={isAdmin}
             />
           ) : (
-            <MovementTable movements={filteredMovements} />
+            <MovementTable 
+              movements={filteredMovements} 
+              visibleColumns={visibleMovementColumns}
+            />
           )}
         </div>
       </Card>

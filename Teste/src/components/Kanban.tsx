@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Search, MoreVertical, ChevronRight, Plus, Edit, Trash2, CheckCircle2, User } from 'lucide-react';
+import { Search, ChevronRight, Plus, Edit, Trash2, CheckCircle2, User } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Order, OrderStatus, OrderDetails, ServiceEntry } from '../types';
 import { KANBAN_COLUMNS } from '../constants';
@@ -22,8 +22,6 @@ export const Kanban = ({ orders, serviceEntries, onUpdateStatus, onEdit, onDelet
   const [searchTerm, setSearchTerm] = useState('');
   const [draggedOrderId, setDraggedOrderId] = useState<string | number | null>(null);
   const [draggedOverColumn, setDraggedOverColumn] = useState<string | null>(null);
-  const [activeMenuId, setActiveMenuId] = useState<string | number | null>(null);
-  const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
 
   const getOrderProgress = (order: Order) => {
     if (!order.details) return 0;
@@ -117,17 +115,6 @@ export const Kanban = ({ orders, serviceEntries, onUpdateStatus, onEdit, onDelet
       }
     }
     setDraggedOrderId(null);
-  };
-
-  const openMenu = (e: React.MouseEvent, orderId: string | number) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const rect = e.currentTarget.getBoundingClientRect();
-    setMenuPosition({
-      top: rect.bottom + window.scrollY,
-      left: rect.right - 160 + window.scrollX
-    });
-    setActiveMenuId(orderId);
   };
 
   return (
@@ -244,12 +231,6 @@ export const Kanban = ({ orders, serviceEntries, onUpdateStatus, onEdit, onDelet
                 >
                 <div className="flex justify-between items-start mb-2">
                   <span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase">#{order.id}</span>
-                  <button 
-                    onClick={(e) => openMenu(e, order.id)}
-                    className="text-zinc-300 hover:text-zinc-600 dark:text-zinc-600 dark:hover:text-zinc-300"
-                  >
-                    <MoreVertical size={14} />
-                  </button>
                 </div>
                 <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 mb-1 uppercase">{order.title}</h4>
                 <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-3 line-clamp-2 uppercase">{order.description || 'SEM DESCRIÇÃO'}</p>
@@ -307,53 +288,6 @@ export const Kanban = ({ orders, serviceEntries, onUpdateStatus, onEdit, onDelet
         </div>
       ))}
       </div>
-
-      <AnimatePresence>
-        {activeMenuId && (
-          <>
-            <div 
-              className="fixed inset-0 z-[150]" 
-              onClick={() => setActiveMenuId(null)} 
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              style={{ top: menuPosition.top, left: menuPosition.left }}
-              className="absolute w-40 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-xl z-[160] overflow-hidden p-1"
-            >
-              <button 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  const order = orders.find(o => o.id === activeMenuId);
-                  if (order) onEdit(order);
-                  setActiveMenuId(null);
-                }}
-                className="flex items-center gap-2 w-full px-3 py-2 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-zinc-100 rounded-lg transition-colors"
-              >
-                <Edit size={14} />
-                EDITAR ORDEM
-              </button>
-              {isAdmin && (
-                <>
-                  <div className="h-px bg-zinc-100 dark:bg-zinc-800 my-1" />
-                  <button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onDelete(activeMenuId);
-                      setActiveMenuId(null);
-                    }}
-                    className="flex items-center gap-2 w-full px-3 py-2 text-xs font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg transition-colors"
-                  >
-                    <Trash2 size={14} />
-                    EXCLUIR ORDEM
-                  </button>
-                </>
-              )}
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
     </div>
   );
 };

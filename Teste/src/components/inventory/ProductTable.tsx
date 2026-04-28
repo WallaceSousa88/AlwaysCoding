@@ -1,5 +1,5 @@
 import React from 'react';
-import { Package, AlertTriangle, ChevronUp, ChevronDown, MoreVertical } from 'lucide-react';
+import { Package, AlertTriangle, ChevronUp, ChevronDown } from 'lucide-react';
 import { Product } from '../../types';
 import { cn } from '../Common';
 

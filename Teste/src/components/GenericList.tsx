@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Search, Plus, MoreVertical, Settings, FileText, Download } from 'lucide-react';
+import { Search, Plus, Settings, FileText, Download } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Card, cn, SearchBar } from './Common';
 import { useDebounce } from '../hooks/useDebounce';
@@ -22,7 +22,6 @@ interface GenericListProps {
   onAdd?: () => void;
   addButtonLabel?: string;
   onItemClick?: (item: any) => void;
-  onMenuClick?: (e: React.MouseEvent, id: string | number) => void;
 }
 
 export const GenericList = ({ 
@@ -32,17 +31,19 @@ export const GenericList = ({
   columns, 
   showAddButton = true, 
   addButtonLabel = "Novo",
-  showActions = false,
   onAdd,
-  onItemClick,
-  onMenuClick
+  onItemClick
 }: GenericListProps) => {
   const [inputValue, setInputValue] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const debouncedSearchTerm = useDebounce(inputValue, 300);
-  const [visibleColumns, setVisibleColumns] = useState<string[]>(columns.map(c => c.key).filter(k => k.toLowerCase() !== 'id'));
+  const [visibleColumns, setVisibleColumns] = useState<string[]>([]);
   const [isColumnSelectorOpen, setIsColumnSelectorOpen] = useState(false);
   const columnSelectorRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setVisibleColumns(columns.map(c => c.key).filter(k => k.toLowerCase() !== 'id'));
+  }, [columns]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -157,7 +158,6 @@ export const GenericList = ({
               {activeColumns.map(col => (
                 <th key={col.key} className="px-6 py-3 text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">{col.label}</th>
               ))}
-              {showActions && <th className="px-6 py-3"></th>}
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
@@ -175,24 +175,11 @@ export const GenericList = ({
                     {col.render ? col.render(item[col.key], item) : item[col.key]}
                   </td>
                 ))}
-                {showActions && (
-                  <td className="px-6 py-4 text-right relative">
-                    <button 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onMenuClick?.(e, item.id);
-                      }}
-                      className="p-2 text-zinc-400 hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100 transition-colors"
-                    >
-                      <MoreVertical size={16} />
-                    </button>
-                  </td>
-                )}
               </tr>
             ))}
             {filteredItems.length === 0 && (
               <tr>
-                <td colSpan={activeColumns.length + (showActions ? 1 : 0)} className="px-6 py-8 text-center text-zinc-400 dark:text-zinc-500 text-sm italic uppercase">
+                <td colSpan={activeColumns.length} className="px-6 py-8 text-center text-zinc-400 dark:text-zinc-500 text-sm italic uppercase">
                   NENHUM REGISTRO ENCONTRADO.
                 </td>
               </tr>

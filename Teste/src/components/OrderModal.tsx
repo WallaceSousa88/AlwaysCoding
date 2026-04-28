@@ -49,6 +49,7 @@ export const OrderModal = ({
     details: {
       entry_date: new Date().toISOString().split('T')[0],
       delivery_date: '',
+      attachments: [],
       attachment: '',
       attachment_name: '',
       impression_3d: { items: [] },
@@ -78,15 +79,21 @@ export const OrderModal = ({
   useEffect(() => {
     if (editingOrder && isOpen) {
       let details: OrderDetails;
-      try {
-        details = editingOrder.details ? JSON.parse(editingOrder.details) : null;
-      } catch (e) {
-        details = null as any;
+      if (typeof editingOrder.details === 'string') {
+        try {
+          details = JSON.parse(editingOrder.details);
+        } catch (e) {
+          console.error("Error parsing details string:", e);
+          details = null as any;
+        }
+      } else {
+        details = editingOrder.details as OrderDetails;
       }
 
       const initialDetails: OrderDetails = {
         entry_date: details?.entry_date || new Date().toISOString().split('T')[0],
         delivery_date: details?.delivery_date || '',
+        attachments: details?.attachments || (details?.attachment ? [{ url: details.attachment, name: details.attachment_name || 'Projeto' }] : []),
         attachment: details?.attachment || '',
         attachment_name: details?.attachment_name || '',
         impression_3d: details?.impression_3d ? { items: details.impression_3d.items.map((i: any) => typeof i === 'string' ? { name: i, quantity: 1 } : i) } : { items: [] },
@@ -97,7 +104,9 @@ export const OrderModal = ({
         final_finish: details?.final_finish ? { items: details.final_finish.items.map((i: any) => typeof i === 'string' ? { name: i, quantity: 1 } : i) } : { items: [] },
         lighting: details?.lighting ? { items: details.lighting.items.map((i: any) => typeof i === 'string' ? { name: i, quantity: 1 } : i), temperature: details.lighting.temperature || '', model: details.lighting.model || '' } : { items: [], temperature: '', model: '' },
         accessories: details?.accessories ? { items: details.accessories.items.map((i: any) => typeof i === 'string' ? { name: i, quantity: 1 } : i) } : { items: [] },
-        gluing: details?.gluing ? { items: details.gluing.items.map((i: any) => typeof i === 'string' ? { name: i, quantity: 1 } : i) } : { items: [] }
+        gluing: details?.gluing ? { items: details.gluing.items.map((i: any) => typeof i === 'string' ? { name: i, quantity: 1 } : i) } : { items: [] },
+        completed_items: details?.completed_items || [],
+        products: details?.products || []
       };
 
       setFormData({
@@ -141,6 +150,7 @@ export const OrderModal = ({
         details: {
           entry_date: new Date().toISOString().split('T')[0],
           delivery_date: '',
+          attachments: [],
           attachment: '',
           attachment_name: '',
           impression_3d: { items: [] },
@@ -169,41 +179,88 @@ export const OrderModal = ({
     }
   }, [editingOrder, isOpen]);
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
+  const uploadFiles = async (files: FileList | File[]) => {
     setIsUploading(true);
     setError(null);
 
-    const formDataUpload = new FormData();
-    formDataUpload.append('file', file);
-    formDataUpload.append('category', 'projects');
+    const newAttachments = [...(formData.details.attachments || [])];
 
-    try {
-      const response = await fetch('/api/upload', {
-        method: 'POST',
-        body: formDataUpload
-      });
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const formDataUpload = new FormData();
+      formDataUpload.append('file', file);
+      formDataUpload.append('category', 'projects');
 
-      if (!response.ok) throw new Error('Falha no upload');
+      try {
+        const response = await fetch('/api/upload', {
+          method: 'POST',
+          body: formDataUpload
+        });
 
-      const data = await response.json();
-      setFormData(prev => ({
+        if (!response.ok) throw new Error(`Falha no upload do arquivo ${file.name}`);
+
+        const data = await response.json();
+        newAttachments.push({ url: data.url, name: data.name });
+      } catch (err) {
+        console.error(err);
+        setError(`ERRO AO ENVIAR ${file.name.toUpperCase()}. ALGUNS ARQUIVOS PODEM NÃO TER SIDO ENVIADOS.`);
+      }
+    }
+
+    setFormData(prev => ({
+      ...prev,
+      details: {
+        ...prev.details,
+        attachments: newAttachments,
+        // Mantém retrocompatibilidade para o primeiro anexo se não houver um principal
+        attachment: newAttachments[0]?.url || '',
+        attachment_name: newAttachments[0]?.name || ''
+      }
+    }));
+    
+    setIsUploading(false);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      uploadFiles(e.target.files);
+    }
+  };
+
+  const [isDragging, setIsDragging] = useState(false);
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      uploadFiles(e.dataTransfer.files);
+    }
+  };
+
+  const removeAttachment = (index: number) => {
+    setFormData(prev => {
+      const newAttachments = (prev.details.attachments || []).filter((_, i) => i !== index);
+      return {
         ...prev,
         details: {
           ...prev.details,
-          attachment: data.url,
-          attachment_name: data.name
+          attachments: newAttachments,
+          attachment: newAttachments[0]?.url || '',
+          attachment_name: newAttachments[0]?.name || ''
         }
-      }));
-    } catch (err) {
-      console.error(err);
-      setError('ERRO AO ENVIAR ARQUIVO. TENTE NOVAMENTE.');
-    } finally {
-      setIsUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
-    }
+      };
+    });
   };
 
   const handleNext = () => {
@@ -478,52 +535,78 @@ export const OrderModal = ({
               error={fieldErrors.description}
             />
 
-            <div className="space-y-2">
+            <div className="space-y-4">
               <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-1">
                 Anexos do Projeto (Opcional)
               </label>
-              <input 
-                type="file" 
-                ref={fileInputRef}
-                className="hidden" 
-                onChange={handleFileChange}
-              />
               
-              {formData.details.attachment ? (
-                <div className="flex items-center justify-between p-3 bg-zinc-100 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700">
-                  <div className="flex items-center gap-3 overflow-hidden">
-                    <Paperclip size={18} className="text-zinc-500 flex-shrink-0" />
-                    <span className="text-xs font-bold text-zinc-900 dark:text-zinc-100 truncate uppercase">
-                      {formData.details.attachment_name || 'ARQUIVO ANEXADO'}
-                    </span>
-                  </div>
-                  <button 
-                    type="button"
-                    onClick={() => setFormData(prev => ({ ...prev, details: { ...prev.details, attachment: '', attachment_name: '' } }))}
-                    className="p-1 px-2 text-[10px] font-bold text-rose-500 hover:bg-rose-100 dark:hover:bg-rose-500/10 rounded-lg transition-colors uppercase"
-                  >
-                    Remover
-                  </button>
-                </div>
-              ) : (
-                <button 
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={isUploading}
-                  className="w-full py-4 border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl text-zinc-400 hover:text-zinc-600 hover:border-zinc-400 transition-all flex flex-col items-center justify-center gap-2"
-                >
-                  {isUploading ? (
-                    <>
-                      <Loader2 size={24} className="animate-spin text-zinc-400" />
-                      <span className="text-[10px] font-bold uppercase tracking-widest">Enviando...</span>
-                    </>
-                  ) : (
-                    <>
+              <div 
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                onClick={() => fileInputRef.current?.click()}
+                className={cn(
+                  "w-full py-8 border-2 border-dashed rounded-3xl transition-all flex flex-col items-center justify-center gap-2 cursor-pointer group",
+                  isDragging 
+                    ? "border-zinc-900 bg-zinc-50 dark:border-zinc-100 dark:bg-zinc-800/50" 
+                    : "border-zinc-200 dark:border-zinc-800 hover:border-zinc-400 dark:hover:border-zinc-600"
+                )}
+              >
+                <input 
+                  type="file" 
+                  ref={fileInputRef}
+                  className="hidden" 
+                  multiple
+                  onChange={handleFileChange}
+                />
+                
+                {isUploading ? (
+                  <>
+                    <Loader2 size={32} className="animate-spin text-zinc-400" />
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Enviando arquivos...</span>
+                  </>
+                ) : (
+                  <>
+                    <div className="w-12 h-12 rounded-2xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-500 group-hover:scale-110 group-hover:bg-zinc-900 group-hover:text-white dark:group-hover:bg-zinc-100 dark:group-hover:text-zinc-900 transition-all">
                       <Upload size={24} />
-                      <span className="text-[10px] font-bold uppercase tracking-widest">Anexar Arquivo do Projeto</span>
-                    </>
-                  )}
-                </button>
+                    </div>
+                    <div className="text-center">
+                      <span className="block text-[10px] font-bold uppercase tracking-widest text-zinc-900 dark:text-zinc-100">
+                        Arraste ou clique para anexar
+                      </span>
+                      <span className="block text-[9px] font-medium text-zinc-400 uppercase mt-1">
+                        Aceita múltiplos arquivos e formatos
+                      </span>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {formData.details.attachments && formData.details.attachments.length > 0 && (
+                <div className="space-y-2">
+                  {formData.details.attachments.map((file, idx) => (
+                    <div key={idx} className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl border border-zinc-100 dark:border-zinc-700/50 animate-in fade-in slide-in-from-top-1">
+                      <div className="flex items-center gap-3 overflow-hidden">
+                        <div className="p-2 bg-white dark:bg-zinc-900 rounded-lg shadow-sm border border-zinc-100 dark:border-zinc-800">
+                          <Paperclip size={14} className="text-zinc-500" />
+                        </div>
+                        <span className="text-xs font-bold text-zinc-900 dark:text-zinc-100 truncate uppercase">
+                          {file.name}
+                        </span>
+                      </div>
+                      <button 
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeAttachment(idx);
+                        }}
+                        className="p-2 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-xl transition-colors"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
           </div>

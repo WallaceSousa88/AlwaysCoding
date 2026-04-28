@@ -513,16 +513,6 @@ export default function App() {
     });
   };
 
-  const [activeGenericMenuId, setActiveGenericMenuId] = useState<string | number | null>(null);
-  const [genericMenuPosition, setGenericMenuPosition] = useState<{ top: number, left: number } | null>(null);
-
-  const handleGenericMenuClick = (e: React.MouseEvent, id: string | number) => {
-    e.stopPropagation();
-    const rect = e.currentTarget.getBoundingClientRect();
-    setGenericMenuPosition({ top: rect.bottom + window.scrollY, left: rect.right - 160 + window.scrollX });
-    setActiveGenericMenuId(id);
-  };
-
   useEffect(() => {
     if (user) {
       fetchData();
@@ -1197,7 +1187,6 @@ export default function App() {
           onAdd={addServiceEntry}
           onUpdate={updateServiceEntry}
           onDelete={deleteServiceEntry}
-          onMenuClick={handleGenericMenuClick}
           isModalOpen={isServiceEntryModalOpen}
           setIsModalOpen={setIsServiceEntryModalOpen}
           editingEntry={editingServiceEntry}
@@ -1231,8 +1220,6 @@ export default function App() {
             setEditingClient(client);
             setIsClientModalOpen(true);
           }}
-          showActions={true}
-          onMenuClick={handleGenericMenuClick}
         />
       );
       case 'suppliers': return (
@@ -1262,8 +1249,6 @@ export default function App() {
             setEditingSupplier(supplier);
             setIsSupplierModalOpen(true);
           }}
-          showActions={true}
-          onMenuClick={handleGenericMenuClick}
         />
       );
       case 'assets': return (
@@ -1611,99 +1596,8 @@ export default function App() {
         categories={categories}
         fieldErrors={assetFieldErrors}
       />
-
-      <AnimatePresence>
-        {activeGenericMenuId && genericMenuPosition && (
-          <>
-            <div className="fixed inset-0 z-[150]" onClick={() => setActiveGenericMenuId(null)} />
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              style={{ top: genericMenuPosition.top, left: genericMenuPosition.left }}
-              className="absolute w-40 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-xl z-[160] overflow-hidden p-1"
-            >
-              <button 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (activeTab === 'production') {
-                    const item = orders.find(o => o.id === activeGenericMenuId);
-                    if (item) {
-                      setEditingOrder(item);
-                      setIsOrderModalOpen(true);
-                    }
-                  } else if (activeTab === 'service_entry') {
-                    const item = serviceEntries.find(s => s.id === activeGenericMenuId);
-                    if (item) {
-                      setEditingServiceEntry(item);
-                      setIsServiceEntryModalOpen(true);
-                    }
-                  } else if (activeTab === 'clients') {
-                    const item = clients.find(c => c.id === activeGenericMenuId);
-                    if (item) {
-                      setEditingClient(item);
-                      setIsClientModalOpen(true);
-                    }
-                  } else if (activeTab === 'suppliers') {
-                    const item = suppliers.find(s => s.id === activeGenericMenuId);
-                    if (item) {
-                      setEditingSupplier(item);
-                      setIsSupplierModalOpen(true);
-                    }
-                  } else if (activeTab === 'assets') {
-                    const item = assets.find(a => a.id === activeGenericMenuId);
-                    if (item) {
-                      setEditingAsset(item);
-                      setIsAssetModalOpen(true);
-                    }
-                  }
-                  setActiveGenericMenuId(null);
-                }}
-                className={cn(
-                  "flex items-center gap-2 w-full px-3 py-2 text-xs font-medium rounded-lg transition-colors",
-                  ['production', 'service_entry', 'clients', 'suppliers', 'assets'].includes(activeTab)
-                    ? "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800" 
-                    : "text-zinc-300 dark:text-zinc-600 cursor-not-allowed"
-                )}
-                disabled={!['production', 'service_entry', 'clients', 'suppliers', 'assets'].includes(activeTab)}
-              >
-                <Edit size={14} />
-                EDITAR
-              </button>
-              {isAdmin && (
-                <button 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    const idToDelete = activeGenericMenuId;
-                    const title = activeTab === 'production' ? 'EXCLUIR ORDEM' :
-                                  activeTab === 'service_entry' ? 'EXCLUIR ENTRADA' :
-                                  activeTab === 'clients' ? 'EXCLUIR CLIENTE' :
-                                  activeTab === 'suppliers' ? 'EXCLUIR FORNECEDOR' : 'EXCLUIR ITEM';
-                    
-                    showConfirm(
-                      title,
-                      'TEM CERTEZA QUE DESEJA EXCLUIR ESTE ITEM? ESTA AÇÃO NÃO PODE SER DESFEITA.',
-                      () => {
-                        if (activeTab === 'production') deleteOrder(idToDelete!);
-                        else if (activeTab === 'service_entry') deleteServiceEntry(idToDelete!);
-                        else if (activeTab === 'clients') deleteClient(idToDelete!);
-                        else if (activeTab === 'suppliers') deleteSupplier(idToDelete!);
-                        else if (activeTab === 'assets') deleteAsset(idToDelete!);
-                      }
-                    );
-                    setActiveGenericMenuId(null);
-                  }}
-                  className="flex items-center gap-2 w-full px-3 py-2 text-xs font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg transition-colors"
-                >
-                  <Trash2 size={14} />
-                  EXCLUIR
-                </button>
-              )}
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
     </div>
+
       <FinancialDetailModal 
         isOpen={!!selectedFinancialEntry}
         onClose={() => setSelectedFinancialEntry(null)}

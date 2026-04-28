@@ -1,7 +1,7 @@
-import React from 'react';
-import { X, Edit, Trash2, ClipboardList, User, Calendar, CheckCircle2, Info, Check, AlertTriangle, Box, Download, FileSymlink } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { X, Edit, Trash2, ClipboardList, User, Calendar, CheckCircle2, Info, Check, AlertTriangle, Box, Download, FileSymlink, ShieldCheck, Mail, Phone, MapPin, Paperclip } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Order, OrderDetails, ProductionItem, ServiceEntry } from '../types';
+import { Order, OrderDetails, ProductionItem, ServiceEntry, Client } from '../types';
 import { apiService } from '../services/apiService';
 import { Modal, ConfirmModal, Button, cn } from './Common';
 
@@ -26,8 +26,25 @@ export const OrderDetailModal = ({
   onDelete,
   onUpdate
 }: OrderDetailModalProps) => {
-  const [confirmingItem, setConfirmingItem] = React.useState<{ section: string, item: string } | null>(null);
-  const [isUpdating, setIsUpdating] = React.useState(false);
+  const [confirmingItem, setConfirmingItem] = useState<{ section: string, item: string } | null>(null);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [clientData, setClientData] = useState<Client | null>(null);
+
+  useEffect(() => {
+    if (isOpen && order?.client_id) {
+      const fetchClient = async () => {
+        try {
+          const client = await apiService.getClient(order.client_id);
+          setClientData(client || null);
+        } catch (error) {
+          console.error("Error fetching client", error);
+        }
+      };
+      fetchClient();
+    } else {
+      setClientData(null);
+    }
+  }, [isOpen, order?.client_id]);
 
   if (!order) return null;
 
@@ -249,13 +266,63 @@ export const OrderDetailModal = ({
 
           {/* Info Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl border border-zinc-100 dark:border-zinc-800 space-y-4">
-              <h3 className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest flex items-center gap-2">
-                <User size={14} /> Informações do Cliente
-              </h3>
-              <div>
-                <p className="text-sm font-bold text-zinc-900 dark:text-zinc-100 uppercase">{order.client_name || 'NÃO INFORMADO'}</p>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400">ID do Cliente: {order.client_id || '-'}</p>
+            <div className="p-5 bg-zinc-50 dark:bg-zinc-800/50 rounded-3xl border border-zinc-100 dark:border-zinc-800 space-y-4 shadow-sm">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest flex items-center gap-2">
+                  <User size={14} /> Informações do Cliente
+                </h3>
+                {clientData?.tipo_cliente && (
+                   <span className="text-[10px] font-bold px-2 py-0.5 bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 rounded-md">
+                     {clientData.tipo_cliente}
+                   </span>
+                )}
+              </div>
+              
+              <div className="space-y-3">
+                <div>
+                  <p className="text-sm font-bold text-zinc-900 dark:text-zinc-100 uppercase leading-tight">
+                    {clientData?.name || clientData?.razao_social || order.client_name || 'NÃO INFORMADO'}
+                  </p>
+                  {clientData?.nome_fantasia && (
+                    <p className="text-[10px] font-bold text-zinc-500 uppercase mt-0.5">{clientData.nome_fantasia}</p>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 gap-2 pt-1">
+                  {(clientData?.cnpj || clientData?.cpf) && (
+                    <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400">
+                      <ShieldCheck size={14} className="text-zinc-400" />
+                      <span className="text-[11px] font-medium uppercase">
+                        {clientData.tipo_cliente === 'PJ' ? `CNPJ: ${clientData.cnpj}` : `CPF: ${clientData.cpf}`}
+                      </span>
+                    </div>
+                  )}
+                  
+                  {clientData?.telefone1 && (
+                    <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400">
+                      <Phone size={14} className="text-zinc-400" />
+                      <span className="text-[11px] font-medium">{clientData.telefone1}</span>
+                    </div>
+                  )}
+
+                  {clientData?.email && (
+                    <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400">
+                      <Mail size={14} className="text-zinc-400" />
+                      <span className="text-[11px] font-medium lowercase truncate max-w-[200px]">{clientData.email}</span>
+                    </div>
+                  )}
+
+                  {(clientData?.cidade || clientData?.endereco) && (
+                    <div className="flex items-start gap-2 text-zinc-600 dark:text-zinc-400">
+                      <MapPin size={14} className="text-zinc-400 mt-0.5 flex-shrink-0" />
+                      <span className="text-[11px] font-medium uppercase leading-tight">
+                        {clientData.endereco && `${clientData.endereco}, `}
+                        {clientData.bairro && `${clientData.bairro} - `}
+                        {clientData.cidade || 'CIDADE NÃO INFORMADA'}
+                      </span>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -366,32 +433,39 @@ export const OrderDetailModal = ({
             </div>
           </div>
 
-          {/* Project Attachment Download */}
-          {details?.attachment && (
-            <div className="pt-6 border-t border-zinc-100 dark:border-zinc-800">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-5 bg-gradient-to-br from-zinc-50 to-white dark:from-zinc-800/30 dark:to-zinc-900 border border-zinc-200 dark:border-zinc-700/50 rounded-3xl group transition-all hover:border-zinc-400 dark:hover:border-zinc-600">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-2xl bg-zinc-900 dark:bg-zinc-100 flex items-center justify-center text-white dark:text-zinc-900 shadow-lg shadow-zinc-900/10 dark:shadow-none">
-                    <FileSymlink size={24} />
+          {/* Project Attachments Download */}
+          {((details?.attachments && details.attachments.length > 0) || details?.attachment) && (
+            <div className="pt-8 border-t border-zinc-100 dark:border-zinc-800 space-y-4">
+              <h3 className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-widest flex items-center gap-2 px-1">
+                <FileSymlink size={14} /> Arquivos e Documentos do Projeto
+              </h3>
+              
+              <div className="grid grid-cols-1 gap-3">
+                {(details?.attachments || (details?.attachment ? [{ url: details.attachment, name: details.attachment_name || 'Projeto Digital' }] : [])).map((file: any, idx: number) => (
+                  <div key={idx} className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 bg-gradient-to-br from-zinc-50 to-white dark:from-zinc-800/30 dark:to-zinc-900 border border-zinc-200 dark:border-zinc-700/50 rounded-3xl group transition-all hover:border-zinc-400 dark:hover:border-zinc-600 shadow-sm">
+                    <div className="flex items-center gap-4 flex-1 min-w-0">
+                      <div className="w-10 h-10 rounded-2xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-500 shadow-sm">
+                        <Paperclip size={18} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-bold text-zinc-900 dark:text-zinc-100 uppercase truncate">
+                          {file.name || `Arquivo ${idx + 1}`}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <a 
+                      href={file.url} 
+                      download={file.name} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-center gap-2 px-6 py-2.5 bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 rounded-2xl text-[10px] font-bold uppercase tracking-widest hover:scale-[1.02] active:scale-[0.98] transition-all shadow-md flex-shrink-0"
+                    >
+                      <Download size={14} />
+                      Baixar
+                    </a>
                   </div>
-                  <div>
-                    <h4 className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest mb-0.5">Anexo do Projeto</h4>
-                    <p className="text-sm font-bold text-zinc-900 dark:text-zinc-100 uppercase truncate max-w-[200px] md:max-w-md">
-                      {details.attachment_name || 'Projeto Digital'}
-                    </p>
-                  </div>
-                </div>
-                
-                <a 
-                  href={details.attachment} 
-                  download={details.attachment_name} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-center gap-2 px-6 py-3 bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 rounded-2xl text-xs font-bold uppercase tracking-widest hover:scale-[1.02] active:scale-[0.98] transition-all shadow-md"
-                >
-                  <Download size={16} />
-                  Baixar Projeto
-                </a>
+                ))}
               </div>
             </div>
           )}

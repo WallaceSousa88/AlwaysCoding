@@ -29,7 +29,6 @@ interface ServiceEntryProps {
   onAdd: (data: any) => Promise<void>;
   onUpdate: (id: string | number, data: any) => Promise<void>;
   onDelete: (id: string | number) => Promise<void>;
-  onMenuClick?: (e: React.MouseEvent, id: string | number) => void;
   isModalOpen: boolean;
   setIsModalOpen: (open: boolean) => void;
   editingEntry: ServiceEntryType | null;
@@ -44,7 +43,6 @@ export const ServiceEntry = ({
   onAdd,
   onUpdate,
   onDelete,
-  onMenuClick,
   isModalOpen,
   setIsModalOpen,
   editingEntry,
@@ -117,8 +115,6 @@ export const ServiceEntry = ({
         onAdd={() => handleOpenModal()}
         addButtonLabel="NOVA ENTRADA DE SERVIÇO"
         onItemClick={(entry) => handleOpenModal(entry)}
-        showActions={true}
-        onMenuClick={onMenuClick}
       />
 
       <ServiceEntryModal 

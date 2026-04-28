@@ -115,9 +115,15 @@ export interface ProductionItem {
   quantity: number;
 }
 
+export interface Attachment {
+  url: string;
+  name: string;
+}
+
 export interface OrderDetails {
   entry_date: string;
   delivery_date: string;
+  attachments?: Attachment[];
   attachment?: string;
   attachment_name?: string;
   products?: { name: string; quantity: number }[];
