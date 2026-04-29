@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { motion, AnimatePresence } from 'motion/react';
@@ -57,36 +57,48 @@ export const StatCard = ({ label, value, icon: Icon, trend, color, onClick }: { 
   </Card>
 );
 
-export const Modal = ({ isOpen, onClose, title, children, zIndex = 200, noPadding = false }: { isOpen: boolean, onClose: () => void, title: string, children: React.ReactNode, zIndex?: number, noPadding?: boolean }) => (
-  <AnimatePresence>
-    {isOpen && (
-      <div className={cn("fixed inset-0 flex items-center justify-center p-4 sm:p-6", zIndex === 200 ? "z-[200]" : "z-[300]")}>
-        <motion.div 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="absolute inset-0 bg-zinc-900/60 backdrop-blur-sm"
-        />
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.95, y: 20 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="relative w-full md:w-[92%] h-[92%] md:h-[85%] bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl overflow-hidden flex flex-col"
-        >
-          <div className="px-4 py-3 md:px-6 md:py-4 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between flex-shrink-0">
-            <h2 className="text-sm md:text-lg font-bold text-zinc-900 dark:text-zinc-100 uppercase tracking-widest">{title}</h2>
-            <button onClick={onClose} className="text-zinc-400 hover:text-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-300">
-              <X size={20} />
-            </button>
-          </div>
-          <div className={cn("overflow-y-auto flex-1 custom-scrollbar", !noPadding && "p-4 md:p-6")}>
-            {children}
-          </div>
-        </motion.div>
-      </div>
-    )}
-  </AnimatePresence>
-);
+export const Modal = ({ isOpen, onClose, title, children, zIndex = 200, noPadding = false }: { isOpen: boolean, onClose: () => void, title: string, children: React.ReactNode, zIndex?: number, noPadding?: boolean }) => {
+  useEffect(() => {
+    const handleEsc = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && isOpen) {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, [isOpen, onClose]);
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <div className={cn("fixed inset-0 flex items-center justify-center p-4 sm:p-6", zIndex === 200 ? "z-[200]" : "z-[300]")}>
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-zinc-900/60 backdrop-blur-sm"
+          />
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            className="relative w-full md:w-[92%] h-[92%] md:h-[85%] bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl overflow-hidden flex flex-col"
+          >
+            <div className="px-4 py-3 md:px-6 md:py-4 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between flex-shrink-0">
+              <h2 className="text-sm md:text-lg font-bold text-zinc-900 dark:text-zinc-100 uppercase tracking-widest">{title}</h2>
+              <button onClick={onClose} className="text-zinc-400 hover:text-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-300">
+                <X size={20} />
+              </button>
+            </div>
+            <div className={cn("overflow-y-auto flex-1 custom-scrollbar", !noPadding && "p-4 md:p-6")}>
+              {children}
+            </div>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
+  );
+};
 
 export const ConfirmModal = ({ 
   isOpen, 
@@ -108,49 +120,61 @@ export const ConfirmModal = ({
   cancelText?: string, 
   variant?: "primary" | "danger", 
   isLoading?: boolean 
-}) => (
-  <AnimatePresence>
-    {isOpen && (
-      <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
-        <motion.div 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="absolute inset-0 bg-zinc-900/60 backdrop-blur-sm"
-        />
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.95, y: 20 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="relative w-full max-w-md bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl p-6 overflow-hidden"
-        >
-          <div className="flex flex-col gap-4">
-            <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 uppercase tracking-widest">{title}</h3>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400 leading-relaxed uppercase">{message}</p>
-            <div className="flex gap-3 mt-4">
-              <Button 
-                variant="ghost" 
-                onClick={onClose} 
-                className="flex-1"
-                disabled={isLoading}
-              >
-                {cancelText}
-              </Button>
-              <Button 
-                variant={variant} 
-                onClick={onConfirm} 
-                className="flex-1"
-                disabled={isLoading}
-              >
-                {isLoading ? "PROCESSANDO..." : confirmText}
-              </Button>
+}) => {
+  useEffect(() => {
+    const handleEsc = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && isOpen) {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, [isOpen, onClose]);
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-zinc-900/60 backdrop-blur-sm"
+          />
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            className="relative w-full max-w-md bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl p-6 overflow-hidden"
+          >
+            <div className="flex flex-col gap-4">
+              <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 uppercase tracking-widest">{title}</h3>
+              <p className="text-sm text-zinc-500 dark:text-zinc-400 leading-relaxed uppercase">{message}</p>
+              <div className="flex gap-3 mt-4">
+                <Button 
+                  variant="ghost" 
+                  onClick={onClose} 
+                  className="flex-1"
+                  disabled={isLoading}
+                >
+                  {cancelText}
+                </Button>
+                <Button 
+                  variant={variant} 
+                  onClick={onConfirm} 
+                  className="flex-1"
+                  disabled={isLoading}
+                >
+                  {isLoading ? "PROCESSANDO..." : confirmText}
+                </Button>
+              </div>
             </div>
-          </div>
-        </motion.div>
-      </div>
-    )}
-  </AnimatePresence>
-);
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
+  );
+};
 
 export const ErrorText = ({ children, className }: { children: React.ReactNode, className?: string }) => (
   <p className={cn("text-[10px] font-bold text-rose-500 ml-1 uppercase tracking-wider animate-in fade-in slide-in-from-top-1", className)}>

@@ -555,6 +555,14 @@ export const apiService = {
       handleFirestoreError(error, OperationType.UPDATE, `locations/${id}`);
     }
   },
+  deleteLocation: async (id: string | number) => {
+    try {
+      await deleteDoc(doc(db, 'locations', String(id)));
+      return { success: true };
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, `locations/${id}`);
+    }
+  },
 
   // Categories
   getCategories: async () => {

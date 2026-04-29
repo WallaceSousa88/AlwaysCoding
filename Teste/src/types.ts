@@ -1,4 +1,4 @@
-export type Permission = 'dashboard' | 'kanban' | 'service_entry' | 'production' | 'clients' | 'suppliers' | 'assets' | 'inventory' | 'financial' | 'settings' | 'audit';
+export type Permission = 'dashboard' | 'kanban' | 'service_entry' | 'production' | 'clients' | 'suppliers' | 'assets' | 'inventory' | 'financial' | 'settings' | 'audit' | 'values';
 
 export interface User {
   id: string | number;

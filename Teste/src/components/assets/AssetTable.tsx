@@ -3,6 +3,8 @@ import { Settings, ChevronUp, ChevronDown, Edit, Trash2, ArrowUpRight, ArrowDown
 import { Asset } from '../../types';
 import { cn } from '../Common';
 
+import { formatCurrency } from '../../lib/valueMask';
+
 interface AssetTableProps {
   assets: Asset[];
   visibleColumns: string[];
@@ -12,6 +14,7 @@ interface AssetTableProps {
   onEdit: (asset: Asset) => void;
   onDelete: (id: string | number) => void;
   isAdmin?: boolean;
+  canSeeValues?: boolean;
 }
 
 export const AssetTable = ({ 
@@ -22,7 +25,8 @@ export const AssetTable = ({
   onAssetClick,
   onEdit,
   onDelete,
-  isAdmin = false
+  isAdmin = false,
+  canSeeValues = true
 }: AssetTableProps) => {
   return (
     <table className="w-full text-left border-collapse">
@@ -97,7 +101,7 @@ export const AssetTable = ({
             )}
             {visibleColumns.includes('purchase_value') && (
               <td className="px-6 py-4 text-sm font-bold text-zinc-900 dark:text-zinc-100">
-                R$ {asset.purchase_value.toFixed(2)}
+                {formatCurrency(asset.purchase_value, canSeeValues)}
               </td>
             )}
             {visibleColumns.includes('status') && (

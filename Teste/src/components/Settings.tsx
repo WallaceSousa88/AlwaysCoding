@@ -17,6 +17,7 @@ const PERMISSIONS_LIST: { id: Permission; label: string }[] = [
   { id: 'financial', label: 'CONTROLE FINANCEIRO' },
   { id: 'settings', label: 'CONFIGURAÇÕES DO SISTEMA' },
   { id: 'audit', label: 'HISTÓRICO DE AÇÕES' },
+  { id: 'values', label: 'VISUALIZAR VALORES/QUANTIDADES' },
 ];
 
 interface SettingsProps {
@@ -24,6 +25,7 @@ interface SettingsProps {
   currentUserEmail?: string | null;
   categories: { id: string | number; name: string }[];
   units: { id: string | number; name: string }[];
+  locations: { id: string | number; name: string }[];
   onAddUser: (data: any) => Promise<void>;
   onUpdateUser: (id: string | number, data: any) => Promise<void>;
   onDeleteUser: (id: string | number) => Promise<void>;
@@ -31,6 +33,8 @@ interface SettingsProps {
   onDeleteCategory: (id: string | number) => Promise<void>;
   onUpdateUnit: (id: string | number, name: string) => Promise<void>;
   onDeleteUnit: (id: string | number) => Promise<void>;
+  onUpdateLocation: (id: string | number, name: string) => Promise<void>;
+  onDeleteLocation: (id: string | number) => Promise<void>;
 }
 
 export const Settings = ({ 
@@ -38,13 +42,16 @@ export const Settings = ({
   currentUserEmail,
   categories, 
   units, 
+  locations,
   onAddUser, 
   onUpdateUser, 
   onDeleteUser,
   onUpdateCategory,
   onDeleteCategory,
   onUpdateUnit,
-  onDeleteUnit
+  onDeleteUnit,
+  onUpdateLocation,
+  onDeleteLocation
 }: SettingsProps) => {
   const [isBackingUp, setIsBackingUp] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
@@ -70,15 +77,19 @@ export const Settings = ({
   const [isSyncing, setIsSyncing] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  // Category/Unit Management State
+  // Category/Unit/Location Management State
   const [isCatModalOpen, setIsCatModalOpen] = useState(false);
   const [isUnitModalOpen, setIsUnitModalOpen] = useState(false);
+  const [isLocModalOpen, setIsLocModalOpen] = useState(false);
   const [editingCat, setEditingCat] = useState<{ id: string | number; name: string } | null>(null);
   const [editingUnit, setEditingUnit] = useState<{ id: string | number; name: string } | null>(null);
+  const [editingLoc, setEditingLoc] = useState<{ id: string | number; name: string } | null>(null);
   const [catName, setCatName] = useState('');
   const [unitName, setUnitName] = useState('');
+  const [locName, setLocName] = useState('');
   const [isDeletingCat, setIsDeletingCat] = useState<{ id: string | number; name: string } | null>(null);
   const [isDeletingUnit, setIsDeletingUnit] = useState<{ id: string | number; name: string } | null>(null);
+  const [isDeletingLoc, setIsDeletingLoc] = useState<{ id: string | number; name: string } | null>(null);
 
   const isSuperAdmin = currentUserEmail === 'admin@skysmart.com' || currentUserEmail === 'Diesel.087@gmail.com';
 
@@ -207,6 +218,19 @@ export const Settings = ({
     }
   };
 
+  const handleLocSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingLoc) return;
+    try {
+      await onUpdateLocation(editingLoc.id, locName.toUpperCase());
+      setIsLocModalOpen(false);
+      setEditingLoc(null);
+      setLocName('');
+    } catch (err: any) {
+      setError('Erro ao salvar localização: ' + err.message);
+    }
+  };
+
   const handleDeleteCat = async () => {
     if (!isDeletingCat) return;
     try {
@@ -224,6 +248,16 @@ export const Settings = ({
       setIsDeletingUnit(null);
     } catch (err: any) {
       setError('Erro ao excluir unidade: ' + err.message);
+    }
+  };
+
+  const handleDeleteLoc = async () => {
+    if (!isDeletingLoc) return;
+    try {
+      await onDeleteLocation(isDeletingLoc.id);
+      setIsDeletingLoc(null);
+    } catch (err: any) {
+      setError('Erro ao excluir localização: ' + err.message);
     }
   };
 
@@ -470,6 +504,47 @@ export const Settings = ({
                   </div>
                 </div>
               ))}
+            </div>
+          </Card>
+
+          {/* Locations Management */}
+          <Card className="p-6">
+            <div className="flex items-center gap-4 mb-6">
+              <div className="w-12 h-12 bg-zinc-100 dark:bg-zinc-800 rounded-2xl flex items-center justify-center flex-shrink-0">
+                <Plus className="text-zinc-900 dark:text-zinc-100" size={24} />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold uppercase">Localizações</h3>
+                <p className="text-sm text-zinc-500 dark:text-zinc-400 uppercase">Gerencie as localizações de estoque.</p>
+              </div>
+            </div>
+            <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2">
+              {locations.map((loc) => (
+                <div key={loc.id} className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-900/50 rounded-xl border border-zinc-100 dark:border-zinc-800 group">
+                  <span className="text-sm font-medium uppercase">{loc.name}</span>
+                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button 
+                      onClick={() => {
+                        setEditingLoc(loc);
+                        setLocName(loc.name);
+                        setIsLocModalOpen(true);
+                      }}
+                      className="p-1.5 text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
+                    >
+                      <Edit size={14} />
+                    </button>
+                    <button 
+                      onClick={() => setIsDeletingLoc(loc)}
+                      className="p-1.5 text-zinc-400 hover:text-rose-600"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+              {locations.length === 0 && (
+                <p className="text-center text-zinc-400 text-xs italic uppercase py-4">Nenhuma localização cadastrada.</p>
+              )}
             </div>
           </Card>
         </div>
@@ -738,6 +813,27 @@ export const Settings = ({
         </form>
       </Modal>
 
+      {/* Location Edit Modal */}
+      <Modal 
+        isOpen={isLocModalOpen} 
+        onClose={() => setIsLocModalOpen(false)} 
+        title="EDITAR LOCALIZAÇÃO"
+      >
+        <form onSubmit={handleLocSubmit} className="p-6 space-y-4">
+          <Input 
+            label="Nome da Localização"
+            value={locName}
+            onChange={(e: any) => setLocName(e.target.value.toUpperCase())}
+            placeholder="EX: PRATELEIRA A1"
+            required
+          />
+          <div className="flex justify-end gap-3 pt-4">
+            <Button variant="secondary" onClick={() => setIsLocModalOpen(false)}>Cancelar</Button>
+            <Button type="submit">Salvar Localização</Button>
+          </div>
+        </form>
+      </Modal>
+
       <ConfirmModal 
         isOpen={!!isDeletingCat}
         onClose={() => setIsDeletingCat(null)}
@@ -754,6 +850,16 @@ export const Settings = ({
         onConfirm={handleDeleteUnit}
         title="EXCLUIR UNIDADE"
         message={`Tem certeza que deseja excluir a unidade ${isDeletingUnit?.name}?`}
+        confirmText="EXCLUIR"
+        variant="danger"
+      />
+
+      <ConfirmModal 
+        isOpen={!!isDeletingLoc}
+        onClose={() => setIsDeletingLoc(null)}
+        onConfirm={handleDeleteLoc}
+        title="EXCLUIR LOCALIZAÇÃO"
+        message={`Tem certeza que deseja excluir a localização ${isDeletingLoc?.name}?`}
         confirmText="EXCLUIR"
         variant="danger"
       />

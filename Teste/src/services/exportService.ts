@@ -1,17 +1,18 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Product, Movement } from '../types';
+import { maskValue, formatCurrency } from '../lib/valueMask';
 
-export const exportToCSV = (products: Product[]) => {
+export const exportToCSV = (products: Product[], canSeeValues = true) => {
   const headers = ['ID', 'Nome', 'Categoria', 'Estoque', 'Unidade', 'Preço de Custo', 'Estoque Mínimo', 'Status'];
   const rows = products.map(p => [
     p.id,
     p.name,
     p.category,
-    p.quantity,
+    maskValue(p.quantity, canSeeValues),
     p.unit,
-    p.cost_price,
-    p.min_quantity ?? '-',
+    formatCurrency(p.cost_price, canSeeValues),
+    p.min_quantity !== null ? maskValue(p.min_quantity, canSeeValues) : '-',
     (p.min_quantity !== null && p.quantity <= p.min_quantity) ? 'Estoque Baixo' : 'Normal'
   ]);
 
@@ -32,7 +33,7 @@ export const exportToCSV = (products: Product[]) => {
   document.body.removeChild(link);
 };
 
-export const exportToPDF = (products: Product[], selectedFields: string[], includeTotalValue: boolean) => {
+export const exportToPDF = (products: Product[], selectedFields: string[], includeTotalValue: boolean, canSeeValues = true) => {
   const doc = new jsPDF();
   
   const fieldLabels: Record<string, string> = {
@@ -56,9 +57,10 @@ export const exportToPDF = (products: Product[], selectedFields: string[], inclu
   
   const tableRows = products.map(p => {
     return activeFields.map(field => {
-      if (field === 'cost_price') return `R$ ${p.cost_price.toFixed(2)}`;
-      if (field === 'total_value') return `R$ ${(p.quantity * p.cost_price).toFixed(2)}`;
-      if (field === 'min_quantity') return p.min_quantity ?? '-';
+      if (field === 'cost_price') return formatCurrency(p.cost_price, canSeeValues);
+      if (field === 'total_value') return formatCurrency(p.quantity * p.cost_price, canSeeValues);
+      if (field === 'quantity') return maskValue(p.quantity, canSeeValues);
+      if (field === 'min_quantity') return p.min_quantity !== null ? maskValue(p.min_quantity, canSeeValues) : '-';
       if (field === 'status') return (p.min_quantity !== null && p.quantity <= p.min_quantity) ? 'Estoque Baixo' : 'Normal';
       return (p as any)[field] ?? '-';
     });
@@ -81,7 +83,7 @@ export const exportToPDF = (products: Product[], selectedFields: string[], inclu
   doc.save(`estoque_${new Date().toISOString().split('T')[0]}.pdf`);
 };
 
-export const exportMovementsToPDF = (movements: Movement[]) => {
+export const exportMovementsToPDF = (movements: Movement[], canSeeValues = true) => {
   const doc = new jsPDF();
   const tableColumn = ['Data', 'Tipo', 'Produto', 'Qtd', 'Origem/Destino', 'Doc/Motivo'];
   const tableRows = movements.map(m => {
@@ -89,7 +91,7 @@ export const exportMovementsToPDF = (movements: Movement[]) => {
     const type = m.type === 'IN' ? 'ENTRADA' : 'SAÍDA';
     const origin = m.type === 'IN' ? (m.supplier_name || m.location) : m.destination;
     const docVal = m.type === 'IN' ? m.doc_number : m.reason;
-    return [date, type, m.product_name, m.quantity, origin, docVal];
+    return [date, type, m.product_name, maskValue(m.quantity, canSeeValues), origin, docVal];
   });
 
   autoTable(doc, {
@@ -105,14 +107,14 @@ export const exportMovementsToPDF = (movements: Movement[]) => {
   doc.save(`movimentacoes_${new Date().toISOString().split('T')[0]}.pdf`);
 };
 
-export const exportMovementsToCSV = (movements: Movement[]) => {
+export const exportMovementsToCSV = (movements: Movement[], canSeeValues = true) => {
   const headers = "Data,Tipo,Produto,Quantidade,Origem/Destino,Documento/Motivo\n";
   const rows = movements.map(m => {
     const date = new Date(m.date).toLocaleString('pt-BR');
     const type = m.type === 'IN' ? 'ENTRADA' : 'SAÍDA';
     const origin = m.type === 'IN' ? (m.supplier_name || m.location) : m.destination;
     const doc = m.type === 'IN' ? m.doc_number : m.reason;
-    return `"${date}","${type}","${m.product_name}","${m.quantity}","${origin}","${doc}"`;
+    return `"${date}","${type}","${m.product_name}","${maskValue(m.quantity, canSeeValues)}","${origin}","${doc}"`;
   }).join("\n");
   
   const csvContent = headers + rows;

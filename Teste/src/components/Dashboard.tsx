@@ -20,13 +20,16 @@ import {
 } from 'recharts';
 import { Card, StatCard } from './Common';
 
+import { maskValue, formatCurrency, formatNumber } from '../lib/valueMask';
+
 interface DashboardProps {
   stats: any;
   isDarkMode: boolean;
   onNavigate: (tab: string, search?: string) => void;
+  canSeeValues?: boolean;
 }
 
-export const Dashboard = ({ stats, isDarkMode, onNavigate }: DashboardProps) => {
+export const Dashboard = ({ stats, isDarkMode, onNavigate, canSeeValues = true }: DashboardProps) => {
   const textColor = isDarkMode ? '#a1a1aa' : '#71717a';
   const gridColor = isDarkMode ? '#27272a' : '#f1f1f1';
   const barColor = isDarkMode ? '#f4f4f5' : '#18181b';
@@ -38,28 +41,28 @@ export const Dashboard = ({ stats, isDarkMode, onNavigate }: DashboardProps) => 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard 
           label="TOTAL PRODUTOS" 
-          value={stats?.totalProducts || 0} 
+          value={maskValue(stats?.totalProducts || 0, canSeeValues)} 
           icon={Package} 
           color="bg-blue-500" 
           onClick={() => onNavigate('inventory', '')}
         />
         <StatCard 
           label="ESTOQUE BAIXO" 
-          value={stats?.lowStock || 0} 
+          value={maskValue(stats?.lowStock || 0, canSeeValues)} 
           icon={AlertTriangle} 
           color="bg-amber-500" 
           onClick={() => onNavigate('inventory', 'ESTOQUE BAIXO')}
         />
         <StatCard 
           label="ORDENS ATIVAS" 
-          value={stats?.activeOrders || 0} 
+          value={maskValue(stats?.activeOrders || 0, canSeeValues)} 
           icon={ClipboardList} 
           color="bg-indigo-500" 
           onClick={() => onNavigate('kanban')}
         />
         <StatCard 
           label="VALOR TOTAL ESTOQUE" 
-          value={`R$ ${(stats?.totalInventoryValue || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`} 
+          value={formatCurrency(stats?.totalInventoryValue || 0, canSeeValues)} 
           icon={DollarSign} 
           color="bg-emerald-500" 
           onClick={() => onNavigate('inventory')}
@@ -77,7 +80,7 @@ export const Dashboard = ({ stats, isDarkMode, onNavigate }: DashboardProps) => 
                 barCategoryGap="35%"
               >
                 <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke={gridColor} />
-                <XAxis type="number" axisLine={false} tickLine={false} tick={{fontSize: 10, fill: textColor}} />
+                <XAxis type="number" axisLine={false} tickLine={false} tick={{fontSize: 10, fill: textColor}} hide={!canSeeValues} />
                 <YAxis 
                   dataKey="category" 
                   type="category" 
@@ -87,7 +90,7 @@ export const Dashboard = ({ stats, isDarkMode, onNavigate }: DashboardProps) => 
                   width={120} 
                 />
                 <Tooltip 
-                  formatter={(value: number) => `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
+                  formatter={(value: number) => formatCurrency(value, canSeeValues)}
                   contentStyle={{ 
                     borderRadius: '12px', 
                     border: 'none', 
@@ -120,6 +123,7 @@ export const Dashboard = ({ stats, isDarkMode, onNavigate }: DashboardProps) => 
                   ))}
                 </Pie>
                 <Tooltip 
+                  formatter={(value: number) => maskValue(value, canSeeValues)}
                   contentStyle={{ 
                     borderRadius: '12px', 
                     border: 'none', 
@@ -141,8 +145,9 @@ export const Dashboard = ({ stats, isDarkMode, onNavigate }: DashboardProps) => 
               <BarChart data={stats?.topProducts || []}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={gridColor} />
                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10, fill: textColor}} />
-                <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fill: textColor}} />
+                <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fill: textColor}} hide={!canSeeValues} />
                 <Tooltip 
+                  formatter={(value: number) => maskValue(value, canSeeValues)}
                   contentStyle={{ 
                     borderRadius: '12px', 
                     border: 'none', 

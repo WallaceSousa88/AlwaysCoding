@@ -56,6 +56,7 @@ interface InventoryProps {
   onStockOut: (data: any) => Promise<void>;
   initialSearchTerm?: string;
   onSearchTermChange?: (val: string) => void;
+  canSeeValues?: boolean;
 }
 
 export const Inventory = ({ 
@@ -79,7 +80,8 @@ export const Inventory = ({
   onStockIn,
   onStockOut,
   initialSearchTerm = '',
-  onSearchTermChange
+  onSearchTermChange,
+  canSeeValues = true
 }: InventoryProps) => {
   const [activeSubTab, setActiveSubTab] = useState<'products' | 'movements'>('products');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -782,13 +784,13 @@ export const Inventory = ({
                 setSelectedPdfFields([]);
                 setIsPdfOptionsModalOpen(true);
               }}
-              onCsvClick={() => exportToCSV(filteredProducts)}
+              onCsvClick={() => exportToCSV(filteredProducts, canSeeValues)}
               onImportCsvClick={() => importFileInputRef.current?.click()}
               onStockOutClick={() => setIsStockOutModalOpen(true)}
               onStockInClick={() => { resetStockInForm(); setIsStockInModalOpen(true); }}
               onNewProductClick={() => { setEditingProduct(null); setIsModalOpen(true); }}
-              onExportMovementsPdf={() => exportMovementsToPDF(filteredMovements)}
-              onExportMovementsCsv={() => exportMovementsToCSV(filteredMovements)}
+              onExportMovementsPdf={() => exportMovementsToPDF(filteredMovements, canSeeValues)}
+              onExportMovementsCsv={() => exportMovementsToCSV(filteredMovements, canSeeValues)}
             />
             <input 
               type="file" 
@@ -808,11 +810,13 @@ export const Inventory = ({
               getSortIcon={getSortIcon}
               onProductClick={handleProductClick}
               isAdmin={isAdmin}
+              canSeeValues={canSeeValues}
             />
           ) : (
             <MovementTable 
               movements={filteredMovements} 
               visibleColumns={visibleMovementColumns}
+              canSeeValues={canSeeValues}
             />
           )}
         </div>
@@ -888,7 +892,7 @@ export const Inventory = ({
         selectedPdfFields={selectedPdfFields}
         setSelectedPdfFields={setSelectedPdfFields}
         onExport={() => {
-          exportToPDF(filteredProducts, selectedPdfFields, false);
+          exportToPDF(filteredProducts, selectedPdfFields, false, canSeeValues);
           setIsPdfOptionsModalOpen(false);
         }}
         ALL_COLUMNS={ALL_COLUMNS}
@@ -908,6 +912,7 @@ export const Inventory = ({
           setSelectedProductForDetail(null);
         }}
         onDelete={onDeleteProduct}
+        canSeeValues={canSeeValues}
       />
     </>
   );

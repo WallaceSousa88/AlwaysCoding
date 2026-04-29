@@ -3,6 +3,8 @@ import { Package, AlertTriangle, ChevronUp, ChevronDown } from 'lucide-react';
 import { Product } from '../../types';
 import { cn } from '../Common';
 
+import { maskValue, formatCurrency } from '../../lib/valueMask';
+
 interface ProductTableProps {
   products: Product[];
   visibleColumns: string[];
@@ -10,6 +12,7 @@ interface ProductTableProps {
   getSortIcon: (key: keyof Product | 'status') => React.ReactNode;
   onProductClick: (p: Product) => void;
   isAdmin?: boolean;
+  canSeeValues?: boolean;
 }
 
 export const ProductTable = ({
@@ -18,7 +21,8 @@ export const ProductTable = ({
   requestSort,
   getSortIcon,
   onProductClick,
-  isAdmin = false
+  isAdmin = false,
+  canSeeValues = true
 }: ProductTableProps) => {
   return (
     <table className="w-full text-left border-collapse">
@@ -137,17 +141,17 @@ export const ProductTable = ({
                   isLowStock ? "text-amber-600 dark:text-amber-400 flex items-center gap-2" : "text-zinc-900 dark:text-zinc-100"
                 )}>
                   {isLowStock && <AlertTriangle size={14} />}
-                  {p.quantity} {p.unit}
+                  {maskValue(p.quantity, canSeeValues)} {p.unit}
                 </td>
               )}
               {visibleColumns.includes('total_value') && (
                 <td className="px-6 py-4 text-sm font-bold text-zinc-900 dark:text-zinc-100">
-                  R$ {(p.quantity * p.cost_price).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  {formatCurrency(p.quantity * p.cost_price, canSeeValues)}
                 </td>
               )}
               {visibleColumns.includes('min_quantity') && (
                 <td className="px-6 py-4 text-sm text-zinc-500 dark:text-zinc-400">
-                  {p.min_quantity ?? '-'} {p.min_quantity !== null ? p.unit : ''}
+                  {p.min_quantity !== null ? maskValue(p.min_quantity, canSeeValues) : '-'} {p.min_quantity !== null ? p.unit : ''}
                 </td>
               )}
               {visibleColumns.includes('status') && (

@@ -52,6 +52,7 @@ import { ClientModal, SupplierModal } from './components/EntityModals';
 import { AssetModal } from './components/assets/AssetModals';
 import { validateEmail, validateCPF, validateCNPJ, validatePhone, validateCEP } from './lib/validation';
 import { FinancialDetailModal } from './components/FinancialDetailModal';
+import { maskValue, formatCurrency, formatNumber } from './lib/valueMask';
 import { ConfirmModal } from './components/Common';
 import { ProfileModal } from './components/ProfileModal';
 
@@ -261,8 +262,10 @@ export default function App() {
   );
   const isAdmin = (user?.email === 'admin@skysmart.com' || user?.email === 'Diesel.087@gmail.com' || currentUserProfile?.role === 'Administrador');
   const userPermissions = isAdmin
-    ? ['dashboard', 'kanban', 'service_entry', 'production', 'clients', 'suppliers', 'assets', 'inventory', 'financial', 'audit', 'settings']
+    ? ['dashboard', 'kanban', 'service_entry', 'production', 'clients', 'suppliers', 'assets', 'inventory', 'financial', 'audit', 'settings', 'values']
     : (currentUserProfile?.permissions || []);
+  
+  const canSeeValues = isAdmin || userPermissions.includes('values');
   
   const logAction = async (action: string, details: string) => {
     await apiService.createAuditLog(action, details, currentUserProfile?.name || user?.email || undefined);
@@ -897,6 +900,16 @@ export default function App() {
     }
   };
 
+  const deleteLocation = async (id: string | number) => {
+    try {
+      await apiService.deleteLocation(id);
+      await fetchData();
+      await logAction('EXCLUSÃO DE LOCALIZAÇÃO', `UMA LOCALIZAÇÃO FOI REMOVIDA.`);
+    } catch (err: any) {
+      setGlobalError('ERRO AO EXCLUIR LOCALIZAÇÃO: ' + err.message);
+    }
+  };
+
   const addCategory = async (name: string) => {
     try {
       await apiService.addCategory(name);
@@ -1271,8 +1284,9 @@ export default function App() {
           showActions={false}
           items={financialEntries.map(e => ({
             ...e,
-            total_value: `R$ ${(e.quantity * e.unit_price).toFixed(2)}`,
-            unit_price_fmt: `R$ ${e.unit_price.toFixed(2)}`,
+            total_value: formatCurrency(e.quantity * e.unit_price, canSeeValues),
+            unit_price_fmt: formatCurrency(e.unit_price, canSeeValues),
+            quantity_fmt: maskValue(e.quantity, canSeeValues),
             issue_date_fmt: e.issue_date ? new Date(e.issue_date + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '-',
             date_fmt: new Date(e.date).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
           }))} 
@@ -1283,7 +1297,7 @@ export default function App() {
             { key: 'doc_number', label: 'DOC. FISCAL' },
             { key: 'supplier_name', label: 'FORNECEDOR' },
             { key: 'product_name', label: 'PRODUTO' },
-            { key: 'quantity', label: 'QUANTIDADE' },
+            { key: 'quantity_fmt', label: 'QUANTIDADE' },
             { key: 'unit_price_fmt', label: 'V. UNITÁRIO' },
             { key: 'total_value', label: 'V. TOTAL' }
           ]} 
@@ -1331,6 +1345,9 @@ export default function App() {
           onDeleteCategory={deleteCategory}
           onUpdateUnit={updateUnit}
           onDeleteUnit={deleteUnit}
+          locations={locations}
+          onUpdateLocation={updateLocation}
+          onDeleteLocation={deleteLocation}
         />
       );
       default: return <div className="flex items-center justify-center h-64 text-zinc-400">Em desenvolvimento...</div>;
@@ -1534,6 +1551,7 @@ export default function App() {
         order={selectedOrderForDetail}
         serviceEntries={serviceEntries}
         isAdmin={isAdmin}
+        canSeeValues={canSeeValues}
         onEdit={(order) => {
           setEditingOrder(order);
           setIsOrderModalOpen(true);
@@ -1602,6 +1620,7 @@ export default function App() {
         isOpen={!!selectedFinancialEntry}
         onClose={() => setSelectedFinancialEntry(null)}
         entry={selectedFinancialEntry}
+        canSeeValues={canSeeValues}
       />
 
       <ConfirmModal 

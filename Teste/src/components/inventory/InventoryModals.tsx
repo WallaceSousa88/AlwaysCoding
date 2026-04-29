@@ -6,6 +6,7 @@ import { Product, Supplier, Order, Movement } from '../../types';
 import { Card, cn, Input, Select, Button, Modal, ConfirmModal, ErrorAlert } from '../Common';
 import { maskCurrency, parseCurrency } from '../../lib/masks';
 import { useDebounce } from '../../hooks/useDebounce';
+import { maskValue, formatCurrency } from '../../lib/valueMask';
 
 interface ProductModalProps {
   isOpen: boolean;
@@ -1141,6 +1142,7 @@ export const ProductDetailModal = ({
   movements,
   isLoading,
   isAdmin = false,
+  canSeeValues = true,
   onEdit,
   onDelete
 }: any) => {
@@ -1226,22 +1228,22 @@ export const ProductDetailModal = ({
                 <div>
                   <p className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Estoque Atual</p>
                   <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
-                    {product.quantity} {product.unit}
+                    {maskValue(product.quantity, canSeeValues)} {product.unit}
                   </p>
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Estoque Mínimo</p>
-                  <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">{product.min_quantity ?? 'Não definido'} {product.min_quantity !== null ? product.unit : ''}</p>
+                  <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">{product.min_quantity !== null ? maskValue(product.min_quantity, canSeeValues) : 'Não definido'} {product.min_quantity !== null ? product.unit : ''}</p>
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Valor Unitário (Média)</p>
                   <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
                     {(() => {
                       const inMovements = movements.filter((m: Movement) => m.type === 'IN' && m.unit_price > 0);
-                      if (inMovements.length === 0) return `R$ ${product.cost_price.toFixed(2)}`;
-                      const sum = inMovements.reduce((acc: number, m: Movement) => acc + m.unit_price, 0);
-                      const avg = sum / inMovements.length;
-                      return `R$ ${avg.toFixed(2)}`;
+                      const avg = inMovements.length > 0 
+                        ? inMovements.reduce((acc: number, m: Movement) => acc + m.unit_price, 0) / inMovements.length 
+                        : product.cost_price;
+                      return formatCurrency(avg, canSeeValues);
                     })()}
                   </p>
                 </div>
@@ -1253,7 +1255,7 @@ export const ProductDetailModal = ({
                       const avgPrice = inMovements.length > 0 
                         ? inMovements.reduce((acc: number, m: Movement) => acc + m.unit_price, 0) / inMovements.length 
                         : product.cost_price;
-                      return `R$ ${(product.quantity * avgPrice).toFixed(2)}`;
+                      return formatCurrency(product.quantity * avgPrice, canSeeValues);
                     })()}
                   </p>
                 </div>
@@ -1330,9 +1332,9 @@ export const ProductDetailModal = ({
                                 {m.type === 'IN' ? 'ENTRADA' : 'SAÍDA'}
                               </span>
                             </td>
-                            <td className="px-4 py-3 text-xs font-bold text-zinc-900 dark:text-zinc-100">{m.quantity}</td>
+                            <td className="px-4 py-3 text-xs font-bold text-zinc-900 dark:text-zinc-100">{maskValue(m.quantity, canSeeValues)}</td>
                             <td className="px-4 py-3 text-xs text-zinc-500 dark:text-zinc-400">
-                              {m.unit_price > 0 ? `R$ ${m.unit_price.toFixed(2)}` : '-'}
+                              {m.unit_price > 0 ? formatCurrency(m.unit_price, canSeeValues) : '-'}
                             </td>
                             <td className="px-4 py-3 text-xs text-zinc-500 dark:text-zinc-400 truncate max-w-[100px]">
                               {m.type === 'IN' ? (m.supplier_name || '-') : '-'}

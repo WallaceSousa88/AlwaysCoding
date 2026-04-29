@@ -20,6 +20,7 @@ import { AssetTable } from './assets/AssetTable';
 import { AssetModal, AssetDisposalModal } from './assets/AssetModals';
 import { PdfOptionsModal } from './inventory/InventoryModals';
 import { exportGenericToCSV, exportGenericToPDF } from '../services/exportService';
+import { formatCurrency } from '../lib/valueMask';
 
 interface AssetsProps {
   assets: Asset[];
@@ -30,6 +31,7 @@ interface AssetsProps {
   onUpdateAsset: (id: string | number, formData: FormData) => Promise<void>;
   onDeleteAsset: (id: string | number) => Promise<void>;
   onDisposalAsset: (id: string | number, data: any) => Promise<void>;
+  canSeeValues?: boolean;
 }
 
 export const Assets = ({ 
@@ -40,7 +42,8 @@ export const Assets = ({
   onAddAsset, 
   onUpdateAsset,
   onDeleteAsset,
-  onDisposalAsset
+  onDisposalAsset,
+  canSeeValues = true
 }: AssetsProps) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDisposalModalOpen, setIsDisposalModalOpen] = useState(false);
@@ -128,7 +131,14 @@ export const Assets = ({
       };
       return { key: field, label: labels[field] || field };
     });
-    exportGenericToPDF(filteredAssets, columns, 'Relatório de Patrimônio', 'patrimonio');
+
+    const maskedData = filteredAssets.map(a => ({
+      ...a,
+      purchase_value: formatCurrency(a.purchase_value, canSeeValues),
+      disposal_value: a.disposal_value ? formatCurrency(a.disposal_value, canSeeValues) : '-'
+    }));
+
+    exportGenericToPDF(maskedData, columns, 'Relatório de Patrimônio', 'patrimonio');
     setIsPdfOptionsModalOpen(false);
   };
 
@@ -142,7 +152,14 @@ export const Assets = ({
       { key: 'purchase_value', label: 'Valor Compra' },
       { key: 'status', label: 'Status' }
     ];
-    exportGenericToCSV(filteredAssets, columns, 'patrimonio');
+
+    const maskedData = filteredAssets.map(a => ({
+      ...a,
+      purchase_value: formatCurrency(a.purchase_value, canSeeValues),
+      disposal_value: a.disposal_value ? formatCurrency(a.disposal_value, canSeeValues) : '-'
+    }));
+
+    exportGenericToCSV(maskedData, columns, 'patrimonio');
   };
 
   return (
@@ -255,6 +272,7 @@ export const Assets = ({
             onEdit={(asset) => { setEditingAsset(asset); setIsModalOpen(true); }}
             onDelete={onDeleteAsset}
             isAdmin={isAdmin}
+            canSeeValues={canSeeValues}
           />
         </div>
       </Card>

@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Order, OrderDetails, ProductionItem, ServiceEntry, Client } from '../types';
 import { apiService } from '../services/apiService';
 import { Modal, ConfirmModal, Button, cn } from './Common';
+import { maskValue } from '../lib/valueMask';
 
 interface OrderDetailModalProps {
   isOpen: boolean;
@@ -11,6 +12,7 @@ interface OrderDetailModalProps {
   order: Order | null;
   serviceEntries: ServiceEntry[];
   isAdmin?: boolean;
+  canSeeValues?: boolean;
   onEdit: (order: Order) => void;
   onDelete: (id: string | number) => void;
   onUpdate?: () => void;
@@ -22,6 +24,7 @@ export const OrderDetailModal = ({
   order, 
   serviceEntries,
   isAdmin = false,
+  canSeeValues = true,
   onEdit,
   onDelete,
   onUpdate
@@ -146,7 +149,7 @@ export const OrderDetailModal = ({
                 </div>
                 {quantity !== null && (
                   <span className="text-[10px] font-bold text-zinc-400 bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded">
-                    {quantity.toString().replace('.', ',')} UN
+                    {maskValue(quantity.toString().replace('.', ','), canSeeValues)} UN
                   </span>
                 )}
               </div>
@@ -237,19 +240,19 @@ export const OrderDetailModal = ({
                   {linkedEntry.altura && (
                     <div className="bg-white/5 p-3 rounded-2xl border border-white/5">
                       <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Altura</p>
-                      <p className="text-sm font-bold mt-0.5">{linkedEntry.altura}m</p>
+                      <p className="text-sm font-bold mt-0.5">{maskValue(linkedEntry.altura, canSeeValues)}m</p>
                     </div>
                   )}
                   {linkedEntry.largura && (
                     <div className="bg-white/5 p-3 rounded-2xl border border-white/5">
                       <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Largura</p>
-                      <p className="text-sm font-bold mt-0.5">{linkedEntry.largura}m</p>
+                      <p className="text-sm font-bold mt-0.5">{maskValue(linkedEntry.largura, canSeeValues)}m</p>
                     </div>
                   )}
                   {linkedEntry.profundidade && (
                     <div className="bg-white/5 p-3 rounded-2xl border border-white/5">
                       <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Profundidade</p>
-                      <p className="text-sm font-bold mt-0.5">{linkedEntry.profundidade}m</p>
+                      <p className="text-sm font-bold mt-0.5">{maskValue(linkedEntry.profundidade, canSeeValues)}m</p>
                     </div>
                   )}
                 </div>
@@ -364,7 +367,7 @@ export const OrderDetailModal = ({
                   <div key={idx} className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl border border-zinc-100 dark:border-zinc-800">
                     <span className="text-xs font-bold text-zinc-700 dark:text-zinc-300 uppercase">{p.name}</span>
                     <span className="text-[10px] font-bold text-zinc-400 bg-white dark:bg-zinc-900 px-2 py-1 rounded-md border border-zinc-100 dark:border-zinc-800">
-                      {p.quantity} UN
+                      {maskValue(p.quantity, canSeeValues)} UN
                     </span>
                   </div>
                 ))}

@@ -20,12 +20,14 @@ import { Card, cn, Input, Select, Button, Modal, ConfirmModal, TextArea } from '
 import { maskCurrency, parseCurrency } from '../lib/masks';
 import { GenericList } from './GenericList';
 import { exportGenericToCSV, exportGenericToPDF } from '../services/exportService';
+import { formatCurrency } from '../lib/valueMask';
 
 interface ServiceEntryProps {
   serviceEntries: ServiceEntryType[];
   clients: Client[];
   isAdmin?: boolean;
   currentUserId?: string;
+  canSeeValues?: boolean;
   onAdd: (data: any) => Promise<void>;
   onUpdate: (id: string | number, data: any) => Promise<void>;
   onDelete: (id: string | number) => Promise<void>;
@@ -40,6 +42,7 @@ export const ServiceEntry = ({
   clients, 
   isAdmin = false,
   currentUserId,
+  canSeeValues = true,
   onAdd,
   onUpdate,
   onDelete,
@@ -107,7 +110,7 @@ export const ServiceEntry = ({
             label: 'VALOR',
             render: (val) => (
               <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
-                R$ {val.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                {formatCurrency(val, canSeeValues)}
               </span>
             )
           }
@@ -281,7 +284,7 @@ export const ServiceEntryModal = ({ isOpen, onClose, onSubmit, editingEntry, cli
         </div>
 
         <Input 
-          label="AGÊNCIA (OPCIONAL)" 
+          label="AGÊNCIA" 
           icon={<Building2 size={18} />}
           value={formData.agencia}
           onChange={(e: any) => setFormData({ ...formData, agencia: e.target.value.toUpperCase() })}

@@ -3,12 +3,15 @@ import { ArrowDownLeft, ArrowUpRight, FileText } from 'lucide-react';
 import { Movement } from '../../types';
 import { cn } from '../Common';
 
+import { maskValue } from '../../lib/valueMask';
+
 interface MovementTableProps {
   movements: Movement[];
   visibleColumns: string[];
+  canSeeValues?: boolean;
 }
 
-export const MovementTable = ({ movements, visibleColumns }: MovementTableProps) => {
+export const MovementTable = ({ movements, visibleColumns, canSeeValues = true }: MovementTableProps) => {
   return (
     <table className="w-full text-left border-collapse">
       <thead>
@@ -73,7 +76,7 @@ export const MovementTable = ({ movements, visibleColumns }: MovementTableProps)
                 </td>
               )}
               {visibleColumns.includes('product_name') && <td className="px-6 py-4 text-sm font-medium text-zinc-900 dark:text-zinc-100">{m.product_name}</td>}
-              {visibleColumns.includes('quantity') && <td className="px-6 py-4 text-sm text-zinc-900 dark:text-zinc-100 font-bold">{m.quantity}</td>}
+              {visibleColumns.includes('quantity') && <td className="px-6 py-4 text-sm text-zinc-900 dark:text-zinc-100 font-bold">{maskValue(m.quantity, canSeeValues)}</td>}
               {visibleColumns.includes('supplier_name') && (
                 <td className="px-6 py-4 text-sm text-zinc-500 dark:text-zinc-400">
                   {m.type === 'IN' ? (m.supplier_name || '-') : '-'}

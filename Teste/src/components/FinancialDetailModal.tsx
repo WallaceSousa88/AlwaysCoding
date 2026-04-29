@@ -11,17 +11,20 @@ import {
   Download
 } from 'lucide-react';
 import { Modal, cn } from './Common';
+import { maskValue, formatCurrency } from '../lib/valueMask';
 
 interface FinancialDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
   entry: any;
+  canSeeValues?: boolean;
 }
 
 export const FinancialDetailModal = ({
   isOpen,
   onClose,
-  entry
+  entry,
+  canSeeValues = true
 }: FinancialDetailModalProps) => {
   if (!entry) return null;
 
@@ -141,15 +144,15 @@ export const FinancialDetailModal = ({
         <div className="p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl border border-zinc-100 dark:border-zinc-800 grid grid-cols-3 gap-4">
           <div className="text-center">
             <p className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">QUANTIDADE</p>
-            <p className="text-lg font-bold text-zinc-900 dark:text-zinc-100">{entry.quantity}</p>
+            <p className="text-lg font-bold text-zinc-900 dark:text-zinc-100">{maskValue(entry.quantity, canSeeValues)}</p>
           </div>
           <div className="text-center border-x border-zinc-200 dark:border-zinc-700">
             <p className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">VALOR UNITÁRIO</p>
-            <p className="text-lg font-bold text-zinc-900 dark:text-zinc-100">{entry.unit_price_fmt}</p>
+            <p className="text-lg font-bold text-zinc-900 dark:text-zinc-100">{formatCurrency(entry.unit_price, canSeeValues)}</p>
           </div>
           <div className="text-center">
             <p className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">VALOR TOTAL</p>
-            <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{entry.total_value}</p>
+            <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{formatCurrency(entry.quantity * entry.unit_price, canSeeValues)}</p>
           </div>
         </div>
 
