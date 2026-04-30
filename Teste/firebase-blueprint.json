@@ -87,6 +87,7 @@
       "properties": {
         "description": { "type": "string" },
         "asset_number": { "type": "string" },
+        "location_or_responsible": { "type": "string" },
         "category": { "type": "string" },
         "purchase_date": { "type": "string" },
         "purchase_value": { "type": "number" },

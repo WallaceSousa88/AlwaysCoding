@@ -17,10 +17,11 @@ import { Asset } from '../types';
 import { apiService } from '../services/apiService';
 import { Card, cn, Button, SearchBar } from './Common';
 import { AssetTable } from './assets/AssetTable';
-import { AssetModal, AssetDisposalModal } from './assets/AssetModals';
+import { AssetModal, AssetDisposalModal, AssetDetailModal } from './assets/AssetModals';
 import { PdfOptionsModal } from './inventory/InventoryModals';
 import { exportGenericToCSV, exportGenericToPDF } from '../services/exportService';
 import { formatCurrency } from '../lib/valueMask';
+import { calculateDepreciation } from '../lib/depreciation';
 
 interface AssetsProps {
   assets: Asset[];
@@ -46,16 +47,18 @@ export const Assets = ({
   canSeeValues = true
 }: AssetsProps) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isDisposalModalOpen, setIsDisposalModalOpen] = useState(false);
   const [assetFieldErrors, setAssetFieldErrors] = useState<Record<string, string>>({});
   const [disposalFieldErrors, setDisposalFieldErrors] = useState<Record<string, string>>({});
   const [isPdfOptionsModalOpen, setIsPdfOptionsModalOpen] = useState(false);
   const [selectedPdfFields, setSelectedPdfFields] = useState<string[]>([]);
   const [editingAsset, setEditingAsset] = useState<Asset | null>(null);
+  const [selectedAssetForDetail, setSelectedAssetForDetail] = useState<Asset | null>(null);
   const [selectedAssetForDisposal, setSelectedAssetForDisposal] = useState<Asset | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortConfig, setSortConfig] = useState<{ key: keyof Asset | 'status'; direction: 'asc' | 'desc' } | null>(null);
-  const [visibleColumns, setVisibleColumns] = useState<string[]>(['description', 'asset_number', 'category', 'purchase_value', 'status']);
+  const [visibleColumns, setVisibleColumns] = useState<string[]>(['description', 'asset_number', 'location_or_responsible', 'category', 'purchase_value', 'status']);
   const [isColumnSelectorOpen, setIsColumnSelectorOpen] = useState(false);
   const columnSelectorRef = useRef<HTMLDivElement>(null);
 
@@ -73,6 +76,7 @@ export const Assets = ({
     { id: 'id', label: 'ID' },
     { id: 'description', label: 'Descrição' },
     { id: 'asset_number', label: 'Nº Patrimônio' },
+    { id: 'location_or_responsible', label: 'Responsável/Local' },
     { id: 'category', label: 'Categoria' },
     { id: 'purchase_date', label: 'Data Compra' },
     { id: 'purchase_value', label: 'Valor Compra' },
@@ -124,19 +128,31 @@ export const Assets = ({
         id: 'ID',
         description: 'Descrição',
         asset_number: 'Nº Patrimônio',
+        location_or_responsible: 'Responsável/Local',
         category: 'Categoria',
         purchase_date: 'Data Compra',
         purchase_value: 'Valor Compra',
-        status: 'Status'
+        depreciation_type: 'Tipo Deprec.',
+        depreciation_percentage: '% Deprec.',
+        status: 'Status',
+        disposal_type: 'Tipo Baixa',
+        disposal_date: 'Data Baixa',
+        disposal_value: 'Valor Baixa'
       };
       return { key: field, label: labels[field] || field };
     });
 
-    const maskedData = filteredAssets.map(a => ({
-      ...a,
-      purchase_value: formatCurrency(a.purchase_value, canSeeValues),
-      disposal_value: a.disposal_value ? formatCurrency(a.disposal_value, canSeeValues) : '-'
-    }));
+    const maskedData = filteredAssets.map(a => {
+      const disposal_value = a.status === 'BAIXADO' 
+        ? (a.disposal_value ?? (a.disposal_date ? calculateDepreciation(a.purchase_value, a.purchase_date, a.disposal_date, a.depreciation_type, a.depreciation_percentage) : 0))
+        : calculateDepreciation(a.purchase_value, a.purchase_date, new Date().toISOString().split('T')[0], a.depreciation_type, a.depreciation_percentage);
+
+      return {
+        ...a,
+        purchase_value: formatCurrency(a.purchase_value, canSeeValues),
+        disposal_value: formatCurrency(disposal_value, canSeeValues)
+      };
+    });
 
     exportGenericToPDF(maskedData, columns, 'Relatório de Patrimônio', 'patrimonio');
     setIsPdfOptionsModalOpen(false);
@@ -147,17 +163,29 @@ export const Assets = ({
       { key: 'id', label: 'ID' },
       { key: 'description', label: 'Descrição' },
       { key: 'asset_number', label: 'Nº Patrimônio' },
+      { key: 'location_or_responsible', label: 'Responsável/Local' },
       { key: 'category', label: 'Categoria' },
       { key: 'purchase_date', label: 'Data Compra' },
       { key: 'purchase_value', label: 'Valor Compra' },
-      { key: 'status', label: 'Status' }
+      { key: 'depreciation_type', label: 'Tipo Deprec.' },
+      { key: 'depreciation_percentage', label: '% Deprec.' },
+      { key: 'status', label: 'Status' },
+      { key: 'disposal_type', label: 'Tipo Baixa' },
+      { key: 'disposal_date', label: 'Data Baixa' },
+      { key: 'disposal_value', label: 'Valor Baixa' }
     ];
 
-    const maskedData = filteredAssets.map(a => ({
-      ...a,
-      purchase_value: formatCurrency(a.purchase_value, canSeeValues),
-      disposal_value: a.disposal_value ? formatCurrency(a.disposal_value, canSeeValues) : '-'
-    }));
+    const maskedData = filteredAssets.map(a => {
+      const disposal_value = a.status === 'BAIXADO' 
+        ? (a.disposal_value ?? (a.disposal_date ? calculateDepreciation(a.purchase_value, a.purchase_date, a.disposal_date, a.depreciation_type, a.depreciation_percentage) : 0))
+        : calculateDepreciation(a.purchase_value, a.purchase_date, new Date().toISOString().split('T')[0], a.depreciation_type, a.depreciation_percentage);
+
+      return {
+        ...a,
+        purchase_value: formatCurrency(a.purchase_value, canSeeValues),
+        disposal_value: formatCurrency(disposal_value, canSeeValues)
+      };
+    });
 
     exportGenericToCSV(maskedData, columns, 'patrimonio');
   };
@@ -266,11 +294,9 @@ export const Assets = ({
             requestSort={requestSort}
             getSortIcon={getSortIcon}
             onAssetClick={(asset) => { 
-              setEditingAsset(asset); 
-              setIsModalOpen(true); 
+              setSelectedAssetForDetail(asset); 
+              setIsDetailModalOpen(true); 
             }}
-            onEdit={(asset) => { setEditingAsset(asset); setIsModalOpen(true); }}
-            onDelete={onDeleteAsset}
             isAdmin={isAdmin}
             canSeeValues={canSeeValues}
           />
@@ -288,6 +314,7 @@ export const Assets = ({
           const errors: Record<string, string> = {};
           const description = formData.get('description') as string;
           const assetNumber = formData.get('asset_number') as string;
+          const locationOrResponsible = formData.get('location_or_responsible') as string;
 
           if (!description) {
             errors.description = 'DESCRIÇÃO É OBRIGATÓRIA';
@@ -307,6 +334,10 @@ export const Assets = ({
               a.asset_number?.toUpperCase() === assetNumber.toUpperCase()
             );
             if (isDuplicate) errors.asset_number = 'Nº PATRIMÔNIO JÁ CADASTRADO';
+          }
+
+          if (!locationOrResponsible) {
+            errors.location_or_responsible = 'RESPONSÁVEL/LOCALIZAÇÃO É OBRIGATÓRIO';
           }
 
           if (!formData.get('purchase_value')) errors.purchase_value = 'VALOR DE COMPRA É OBRIGATÓRIO';
@@ -377,6 +408,22 @@ export const Assets = ({
         onExport={handleExportPdf}
         ALL_COLUMNS={ALL_COLUMNS}
         onClear={() => setSelectedPdfFields([])}
+      />
+
+      <AssetDetailModal 
+        isOpen={isDetailModalOpen}
+        onClose={() => {
+          setIsDetailModalOpen(false);
+          setSelectedAssetForDetail(null);
+        }}
+        asset={selectedAssetForDetail}
+        isAdmin={isAdmin}
+        canSeeValues={canSeeValues}
+        onEdit={(asset) => {
+          setEditingAsset(asset);
+          setIsModalOpen(true);
+        }}
+        onDelete={onDeleteAsset}
       />
     </>
   );

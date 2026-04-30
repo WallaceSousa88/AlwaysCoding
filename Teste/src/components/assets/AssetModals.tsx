@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Camera, Calendar, DollarSign, Percent, Tag, FileText, Hash, ArrowDownLeft, ArrowUpRight, Plus } from 'lucide-react';
+import { X, Camera, Calendar, DollarSign, Percent, Tag, FileText, Hash, ArrowDownLeft, ArrowUpRight, Plus, Edit, Trash2, Settings } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Asset } from '../../types';
-import { Modal, Input, Select, Button, cn } from '../Common';
+import { Modal, Input, Select, Button, cn, ConfirmModal } from '../Common';
 import { maskCurrency, parseCurrency } from '../../lib/masks';
+import { calculateDepreciation } from '../../lib/depreciation';
+import { formatCurrency } from '../../lib/valueMask';
 
 interface AssetModalProps {
   isOpen: boolean;
@@ -18,6 +20,7 @@ export const AssetModal = ({ isOpen, onClose, onSave, asset, categories, fieldEr
   const [formData, setFormData] = useState({
     description: '',
     asset_number: '',
+    location_or_responsible: '',
     category: '',
     purchase_date: new Date().toISOString().split('T')[0],
     purchase_value: '',
@@ -106,6 +109,7 @@ export const AssetModal = ({ isOpen, onClose, onSave, asset, categories, fieldEr
       setFormData({
         description: asset.description,
         asset_number: asset.asset_number || '',
+        location_or_responsible: asset.location_or_responsible || '',
         category: asset.category || '',
         purchase_date: asset.purchase_date || new Date().toISOString().split('T')[0],
         purchase_value: maskCurrency(asset.purchase_value.toString().replace('.', ',')),
@@ -117,6 +121,7 @@ export const AssetModal = ({ isOpen, onClose, onSave, asset, categories, fieldEr
       setFormData({
         description: '',
         asset_number: '',
+        location_or_responsible: '',
         category: '',
         purchase_date: new Date().toISOString().split('T')[0],
         purchase_value: '',
@@ -160,6 +165,7 @@ export const AssetModal = ({ isOpen, onClose, onSave, asset, categories, fieldEr
     setFormData({
       description: '',
       asset_number: '',
+      location_or_responsible: '',
       category: '',
       purchase_date: new Date().toISOString().split('T')[0],
       purchase_value: '',
@@ -301,6 +307,14 @@ export const AssetModal = ({ isOpen, onClose, onSave, asset, categories, fieldEr
             error={fieldErrors.asset_number}
             required
           />
+          <Input 
+            label="Responsável / Localização" 
+            icon={<Tag size={18} />}
+            value={formData.location_or_responsible}
+            onChange={(e: any) => setFormData({ ...formData, location_or_responsible: e.target.value.toUpperCase() })}
+            error={fieldErrors.location_or_responsible}
+            required
+          />
           <Select 
             label="Categoria" 
             icon={<Tag size={18} />}
@@ -410,24 +424,6 @@ export const AssetDisposalModal = ({ isOpen, onClose, onConfirm, asset, assets =
     }
   }, [currentAsset, disposalDate, isOpen]);
 
-  const calculateDepreciation = (purchaseValue: number, purchaseDate: string, disposalDate: string, type: string, percentage: number) => {
-    const start = new Date(purchaseDate);
-    const end = new Date(disposalDate);
-    const diffTime = Math.max(0, end.getTime() - start.getTime());
-    
-    let periods = 0;
-    if (type === 'DIARIA') {
-      periods = diffTime / (1000 * 60 * 60 * 24);
-    } else if (type === 'MENSAL') {
-      periods = diffTime / (1000 * 60 * 60 * 24 * 30.44);
-    } else if (type === 'ANUAL') {
-      periods = diffTime / (1000 * 60 * 60 * 24 * 365.25);
-    }
-
-    const totalDepreciation = (purchaseValue * (percentage / 100)) * periods;
-    return Math.max(0, purchaseValue - totalDepreciation);
-  };
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentAsset) return;
@@ -524,5 +520,210 @@ export const AssetDisposalModal = ({ isOpen, onClose, onConfirm, asset, assets =
         </div>
       </form>
     </Modal>
+  );
+};
+
+export const AssetDetailModal = ({
+  isOpen,
+  onClose,
+  asset,
+  isAdmin = false,
+  canSeeValues = true,
+  onEdit,
+  onDelete
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  asset: Asset | null;
+  isAdmin?: boolean;
+  canSeeValues?: boolean;
+  onEdit: (asset: Asset) => void;
+  onDelete: (id: string | number) => void;
+}) => {
+  const [showConfirmDelete, setShowConfirmDelete] = useState(false);
+  
+  if (!asset) return null;
+
+  return (
+    <>
+      <AnimatePresence>
+        {isOpen && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 sm:p-6">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={onClose}
+              className="absolute inset-0 bg-zinc-900/60 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-4xl bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+            >
+              <div className="px-6 py-4 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between flex-shrink-0 bg-zinc-50/50 dark:bg-zinc-800/50">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-zinc-900 dark:bg-zinc-100 flex items-center justify-center text-white dark:text-zinc-900">
+                    <Settings size={20} />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 uppercase tracking-tight">{asset.description}</h2>
+                    <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Detalhes do Patrimônio</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={() => {
+                        onEdit(asset);
+                        onClose();
+                    }}
+                    className="p-2 text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg transition-colors shadow-sm"
+                    title="Editar"
+                  >
+                    <Edit size={18} />
+                  </button>
+                  {isAdmin && (
+                    <button 
+                      onClick={() => setShowConfirmDelete(true)}
+                      className="p-2 text-rose-600 hover:text-rose-700 bg-rose-50 dark:bg-rose-500/10 border border-rose-100 dark:border-rose-500/20 rounded-lg transition-colors shadow-sm"
+                      title="Excluir"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  )}
+                  <button onClick={onClose} className="p-2 text-zinc-400 hover:text-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-300 ml-2">
+                    <X size={20} />
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-6 space-y-8">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="md:col-span-1">
+                    {asset.photo ? (
+                      <img 
+                        src={asset.photo} 
+                        alt={asset.description} 
+                        className="w-full aspect-square rounded-xl object-cover border border-zinc-200 dark:border-zinc-800 shadow-sm"
+                        referrerPolicy="no-referrer"
+                      />
+                    ) : (
+                      <div className="w-full aspect-square rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-800 border-dashed flex flex-col items-center justify-center text-zinc-400 dark:text-zinc-500 gap-2">
+                        <Settings size={48} strokeWidth={1} />
+                        <span className="text-xs font-medium uppercase">Sem foto</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="md:col-span-2 grid grid-cols-2 gap-y-6 gap-x-4">
+                    <div>
+                      <p className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Nº Patrimônio</p>
+                      <p className="text-sm font-bold text-zinc-900 dark:text-zinc-100">{asset.asset_number || '-'}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Status</p>
+                      <span className={cn(
+                        "px-2 py-0.5 text-[10px] font-bold rounded uppercase tracking-wider",
+                        asset.status === 'ATIVO' 
+                          ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400" 
+                          : "bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400"
+                      )}>
+                        {asset.status}
+                      </span>
+                    </div>
+                    <div className="col-span-2">
+                      <p className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Responsável / Localização</p>
+                      <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">{asset.location_or_responsible || '-'}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Categoria</p>
+                      <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">{asset.category}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Data Compra</p>
+                      <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                        {new Date(asset.purchase_date).toLocaleDateString('pt-BR')}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Valor Compra</p>
+                      <p className="text-sm font-bold text-zinc-900 dark:text-zinc-100">
+                        {maskCurrency(asset.purchase_value.toString().replace('.', ','))}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">Depreciação</p>
+                      <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">{asset.depreciation_percentage}% {asset.depreciation_type}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {asset.status === 'BAIXADO' && (
+                  <div className="p-4 bg-rose-50 dark:bg-rose-500/10 border border-rose-100 dark:border-rose-500/20 rounded-xl space-y-4 animate-in fade-in slide-in-from-top-2">
+                    <div className="flex items-center gap-3 text-rose-600 dark:text-rose-400">
+                      <ArrowUpRight size={20} />
+                      <h3 className="text-xs font-bold uppercase tracking-widest">Informações da Baixa</h3>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <p className="text-[10px] font-bold text-rose-400 uppercase tracking-wider mb-1">Tipo</p>
+                        <p className="text-sm font-bold text-rose-700 dark:text-rose-300">{asset.disposal_type}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-bold text-rose-400 uppercase tracking-wider mb-1">Data</p>
+                        <p className="text-sm font-bold text-rose-700 dark:text-rose-300">
+                          {asset.disposal_date ? new Date(asset.disposal_date).toLocaleDateString('pt-BR') : '-'}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-bold text-rose-400 uppercase tracking-wider mb-1">Valor Final</p>
+                        <p className="text-sm font-bold text-rose-700 dark:text-rose-300">
+                          {formatCurrency(asset.disposal_value ?? calculateDepreciation(asset.purchase_value, asset.purchase_date, asset.disposal_date || new Date().toISOString().split('T')[0], asset.depreciation_type, asset.depreciation_percentage), canSeeValues)}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {asset.status === 'ATIVO' && (
+                  <div className="p-4 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-100 dark:border-emerald-500/20 rounded-xl space-y-4">
+                    <div className="flex items-center gap-3 text-emerald-600 dark:text-emerald-400">
+                      <DollarSign size={20} />
+                      <h3 className="text-xs font-bold uppercase tracking-widest">Valor Atual Estimado</h3>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider mb-1">Valor com Depreciação (Hoje)</p>
+                      <p className="text-xl font-black text-emerald-700 dark:text-emerald-300">
+                        {formatCurrency(calculateDepreciation(asset.purchase_value, asset.purchase_date, new Date().toISOString().split('T')[0], asset.depreciation_type, asset.depreciation_percentage), canSeeValues)}
+                      </p>
+                      <p className="text-[10px] text-zinc-400 uppercase mt-1 font-bold tracking-widest">
+                        * Calculado com base em {asset.depreciation_percentage}% {asset.depreciation_type.toLowerCase()}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <ConfirmModal 
+        isOpen={showConfirmDelete}
+        onClose={() => setShowConfirmDelete(false)}
+        onConfirm={() => {
+          if (asset) {
+            onDelete(asset.id);
+            setShowConfirmDelete(false);
+            onClose();
+          }
+        }}
+        title="EXCLUIR PATRIMÔNIO"
+        message={`Tem certeza que deseja excluir o patrimônio "${asset.description}"? Esta ação não pode ser desfeita.`}
+        confirmText="EXCLUIR AGORA"
+        cancelText="CANCELAR"
+        variant="danger"
+      />
+    </>
   );
 };

@@ -79,6 +79,7 @@ export interface Asset {
   id: string | number;
   description: string;
   asset_number: string;
+  location_or_responsible: string;
   category: string;
   purchase_date: string;
   purchase_value: number;

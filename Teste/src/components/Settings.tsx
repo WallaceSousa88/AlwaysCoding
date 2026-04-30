@@ -98,6 +98,7 @@ export const Settings = ({
     setError(null);
     try {
       let successCount = 0;
+      let skipCount = 0;
       for (const user of users) {
         if (user.username && user.password) {
           try {
@@ -106,9 +107,16 @@ export const Settings = ({
           } catch (e) {
             console.error(`Error syncing ${user.username}:`, e);
           }
+        } else {
+          skipCount++;
         }
       }
-      alert(`Sincronização concluída! ${successCount} usuários processados.`);
+      
+      if (successCount === 0 && skipCount > 0) {
+        alert(`Sincronização concluída! ${successCount} usuários processados. ${skipCount} usuários foram ignorados por não possuírem senha em cache (senhas não são armazenadas no banco de perfis por segurança, de modo que só podem ser sincronizadas no momento exato da criação ou alteração).`);
+      } else {
+        alert(`Sincronização concluída! ${successCount} usuários processados.`);
+      }
     } catch (err: any) {
       setError('Erro na sincronização: ' + err.message);
     } finally {
@@ -273,11 +281,11 @@ export const Settings = ({
     setIsSavingUser(true);
     try {
       // Ensure email is set based on username for Auth matching
+      const normalizedUsername = userFormData.username.toLowerCase().replace(/\s+/g, '');
       const userData = {
         ...userFormData,
-        email: userFormData.username.includes('@') 
-          ? userFormData.username 
-          : `${userFormData.username.toLowerCase().trim()}@skysmart.com`
+        username: normalizedUsername, // Store normalized username
+        email: `${normalizedUsername}@skysmart.com`
       };
 
       if (editingUser) {

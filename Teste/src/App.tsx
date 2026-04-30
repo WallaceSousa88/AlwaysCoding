@@ -70,36 +70,51 @@ const Login = ({ onLogin }: { onLogin: () => void }) => {
     setIsLoading(true);
     setError(null);
 
-    const normalizedUsername = username.toLowerCase().trim();
-    const normalizedPassword = password.toLowerCase().trim(); // User specifically asked for admin/admin lowercase
+    const userPart = username.trim().toLowerCase().replace(/\s+/g, '');
+    const rawPassword = password.trim();
+    const normalizedPassword = rawPassword.toLowerCase();
 
-    let email = normalizedUsername;
-    let pass = normalizedPassword;
+    let email = userPart.includes('@') ? userPart : `${userPart}@skysmart.com`;
+    let pass = rawPassword;
 
-    // Special handling for admin/admin
-    if (normalizedUsername === 'admin' && normalizedPassword === 'admin') {
+    // Special handling for admin/admin bootstrap
+    if (userPart === 'admin' && normalizedPassword === 'admin') {
       email = 'admin@skysmart.com';
-      pass = 'adminadmin';
-    } else if (!normalizedUsername.includes('@')) {
-      // If it's a simple username, append a domain to make it an email for Firebase Auth
-      email = `${normalizedUsername}@skysmart.com`;
+      pass = 'adminadmin'; // Default password for initial admin
     }
 
     try {
       try {
         await signInWithEmailAndPassword(auth, email, pass);
       } catch (err: any) {
-        // Modern Firebase Auth returns 'auth/invalid-credential' for both not found and wrong password
-        if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
-          // Special case for bootstrap admin
-          if (normalizedUsername === 'admin' && normalizedPassword === 'admin') {
-            try {
-              await createUserWithEmailAndPassword(auth, email, pass);
-            } catch (createErr: any) {
-              // If creation fails (e.g. user already exists but password was wrong), throw original error
-              throw err;
+        // Special case for bootstrap admin: if it doesn't exist, create it.
+        const isAdminAttempt = userPart === 'admin' && (normalizedPassword === 'admin' || normalizedPassword === 'admin123');
+        
+        if (isAdminAttempt && (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential')) {
+          try {
+            // Use 'adminadmin' as the super-secret initial password if it doesn't exist
+            const initialPass = 'adminadmin';
+            await createUserWithEmailAndPassword(auth, email, initialPass);
+            pass = initialPass; // Update pass variable for successful login logic if needed
+          } catch (createErr: any) {
+            // If creation fails (e.g. user already exists but password was wrong), try fallback password if specifically 'admin' was typed
+            if (userPart === 'admin' && normalizedPassword === 'admin') {
+               try {
+                 await signInWithEmailAndPassword(auth, email, 'admin123');
+                 pass = 'admin123';
+               } catch (e) {
+                 throw err;
+               }
+            } else {
+              throw err; 
             }
-          } else {
+          }
+        } else if (userPart === 'admin' && normalizedPassword === 'admin' && err.code === 'auth/invalid-credential') {
+          // One more fallback for 'admin' typed exactly as admin/admin
+          try {
+            await signInWithEmailAndPassword(auth, email, 'admin123');
+            pass = 'admin123';
+          } catch (e) {
             throw err;
           }
         } else {
@@ -108,11 +123,22 @@ const Login = ({ onLogin }: { onLogin: () => void }) => {
       }
       onLogin();
     } catch (err: any) {
-      console.error('Login error:', err);
-      if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
-        setError('USUÁRIO OU SENHA INCORRETOS');
+      console.error('Login error details:', {
+        code: err.code,
+        message: err.message,
+        email: email
+      });
+      
+      if (err.code === 'auth/network-request-failed') {
+        setError('ERRO DE CONEXÃO. VERIFIQUE SUA INTERNET E TENTE NOVAMENTE.');
+      } else if (['auth/user-not-found', 'auth/wrong-password', 'auth/invalid-credential', 'auth/invalid-email'].includes(err.code)) {
+        setError('USUÁRIO OU SENHA INCORRETOS. SE VOCÊ ACABOU DE CRIAR ESTE USUÁRIO, TENTE NOVAMENTE EM ALGUNS SEGUNDOS.');
+      } else if (err.code === 'auth/too-many-requests') {
+        setError('ACESSO BLOQUEADO TEMPORARIAMENTE POR MUITAS TENTATIVAS.');
+      } else if (err.code === 'auth/operation-not-allowed') {
+        setError('LOGIN COM E-MAIL/SENHA NÃO ESTÁ ATIVADO NO FIREBASE CONSOLE.');
       } else {
-        setError('ERRO AO REALIZAR LOGIN. TENTE NOVAMENTE.');
+        setError(`ERRO: ${err.message || 'TENTE NOVAMENTE'}`);
       }
     } finally {
       setIsLoading(false);
@@ -258,7 +284,7 @@ export default function App() {
 
   const currentUserProfile = systemUsers.find(u => 
     u.email === user?.email || 
-    (u.username && user?.email && u.username.toLowerCase() === user.email.split('@')[0].toLowerCase())
+    (u.username && user?.email && u.username.toLowerCase().replace(/\s+/g, '') === user.email.split('@')[0].toLowerCase())
   );
   const isAdmin = (user?.email === 'admin@skysmart.com' || user?.email === 'Diesel.087@gmail.com' || currentUserProfile?.role === 'Administrador');
   const userPermissions = isAdmin
@@ -475,6 +501,7 @@ export default function App() {
       if (isDuplicate) errors.asset_number = 'NÚMERO JÁ CADASTRADO';
     }
 
+    if (!data.location_or_responsible) errors.location_or_responsible = 'RESPONSÁVEL/LOCALIZAÇÃO É OBRIGATÓRIO';
     if (!data.category) errors.category = 'CATEGORIA É OBRIGATÓRIA';
     if (!data.purchase_date) errors.purchase_date = 'DATA É OBRIGATÓRIA';
     if (!data.purchase_value) errors.purchase_value = 'VALOR É OBRIGATÓRIO';
@@ -1274,6 +1301,7 @@ export default function App() {
           onUpdateAsset={updateAsset}
           onDeleteAsset={deleteAsset}
           onDisposalAsset={handleDisposalAsset}
+          canSeeValues={canSeeValues}
         />
       );
       case 'financial': return (

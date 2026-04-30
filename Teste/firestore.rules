@@ -18,7 +18,7 @@ service cloud.firestore {
     // Fields: tipo (string), name (string), cpf (string), rg (string), data_nascimento (string), razao_social (string), cnpj (string), nome_fantasia (string), ie (string), im (string), contato_responsavel (string), endereco (string), complemento (string), bairro (string), cep (string), cidade (string), telefone1 (string), telefone2 (string), email (string), website (string)
     //
     // Collection: assets
-    // Fields: description (string), asset_number (string), category (string), purchase_date (string), purchase_value (number), depreciation_type (string), depreciation_percentage (number), photo (string), status (string), disposal_type (string), disposal_date (string), disposal_value (number)
+    // Fields: description (string), asset_number (string), location_or_responsible (string), category (string), purchase_date (string), purchase_value (number), depreciation_type (string), depreciation_percentage (number), photo (string), status (string), disposal_type (string), disposal_date (string), disposal_value (number)
     //
     // Collection: orders
     // Fields: title (string), description (string), status (string), client_id (string), details (string), created_at (timestamp)

@@ -90,7 +90,8 @@ const FIREBASE_API_KEY = firebaseConfig.apiKey;
 export const apiService = {
   // Helper for Auth REST API
   syncUserWithAuth: async (username: string, password: string) => {
-    const email = `${username.toLowerCase().trim()}@skysmart.com`;
+    const normalizedUsername = username.toLowerCase().replace(/\s+/g, '');
+    const email = `${normalizedUsername}@skysmart.com`;
     try {
       // Try to create user
       const response = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${FIREBASE_API_KEY}`, {
@@ -102,10 +103,9 @@ export const apiService = {
       const data = await response.json();
       if (!response.ok) {
         if (data.error?.message === 'EMAIL_EXISTS') {
-          // User already exists, we can't easily update password without their token via REST
-          // but for this app's flow, we'll just assume it's fine or they'll use the existing one
           return { success: true, message: 'User already exists' };
         }
+        console.error('Identity Toolkit Error Payload:', data);
         throw new Error(data.error?.message || 'Erro ao sincronizar com Auth');
       }
       return { success: true };
@@ -704,6 +704,7 @@ export const apiService = {
         assetData = {
           description: data.get('description'),
           asset_number: data.get('asset_number'),
+          location_or_responsible: data.get('location_or_responsible'),
           category: data.get('category'),
           purchase_date: data.get('purchase_date'),
           purchase_value: parseFloat(data.get('purchase_value') as string) || 0,
@@ -739,6 +740,7 @@ export const apiService = {
         assetData = {
           description: data.get('description'),
           asset_number: data.get('asset_number'),
+          location_or_responsible: data.get('location_or_responsible'),
           category: data.get('category'),
           purchase_date: data.get('purchase_date'),
           purchase_value: parseFloat(data.get('purchase_value') as string) || 0,
@@ -978,7 +980,7 @@ export const apiService = {
 
       // Sync with Auth via REST API (doesn't require admin SDK)
       // This is the only place where the plain text password is used
-      await apiService.syncUserWithAuth(data.username, data.password);
+      await apiService.syncUserWithAuth(data.username, String(data.password).trim());
 
       // Save to Firestore without the password for better security
       // We explicitly exclude password and ensure it's not even a key in the object
@@ -999,10 +1001,10 @@ export const apiService = {
   updateUser: async (id: string | number, data: any) => {
     try {
       // Sync with Auth if password is provided
-      if (data.password && data.password.trim() !== '') {
+      if (data.password && String(data.password).trim() !== '') {
         // Note: Password update for existing users via REST API would require their token
         // For admin flow, we assume initial sync or manual password management
-        await apiService.syncUserWithAuth(data.username || '', data.password || '');
+        await apiService.syncUserWithAuth(data.username || '', String(data.password).trim());
       }
 
       // Save to Firestore without the password
