@@ -92,6 +92,7 @@ export const apiService = {
   syncUserWithAuth: async (username: string, password: string) => {
     const normalizedUsername = username.toLowerCase().replace(/\s+/g, '');
     const email = `${normalizedUsername}@skysmart.com`;
+    console.log(`[AuthSync] Starting sync for ${email}...`);
     try {
       // Try to create user
       const response = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${FIREBASE_API_KEY}`, {
@@ -103,14 +104,18 @@ export const apiService = {
       const data = await response.json();
       if (!response.ok) {
         if (data.error?.message === 'EMAIL_EXISTS') {
+          console.log(`[AuthSync] User ${email} already exists in Auth. Existing credentials will be used.`);
+          // If the user exists, we don't get the localId unless we sign in or use admin SDK
+          // For now we return success without localId if it already exists
           return { success: true, message: 'User already exists' };
         }
-        console.error('Identity Toolkit Error Payload:', data);
+        console.error('[AuthSync] Identity Toolkit Error Payload:', data);
         throw new Error(data.error?.message || 'Erro ao sincronizar com Auth');
       }
-      return { success: true };
+      console.log(`[AuthSync] Successfully created/synced auth for ${email}`);
+      return { success: true, localId: data.localId };
     } catch (error) {
-      console.error('Auth Sync Error:', error);
+      console.error('[AuthSync] Auth Sync Error:', error);
       throw error;
     }
   },
@@ -971,27 +976,35 @@ export const apiService = {
   },
   addUser: async (data: any) => {
     try {
+      console.log('[UserService] Adding new user:', data.username);
       // Check for duplicate username
-      const q = query(collection(db, 'users'), where('username', '==', data.username));
+      const q = query(collection(db, 'users'), where('username', '==', String(data.username).toLowerCase()));
       const snap = await getDocs(q);
       if (!snap.empty) {
-        throw new Error('Este nome de usuário já está em uso.');
+        throw new Error('Este nome de usuário já está em uso no banco de perfis.');
       }
 
-      // Sync with Auth via REST API (doesn't require admin SDK)
-      // This is the only place where the plain text password is used
-      await apiService.syncUserWithAuth(data.username, String(data.password).trim());
+      // Sync with Auth via REST API
+      const password = String(data.password || '').trim();
+      if (!password) throw new Error('Senha é obrigatória para novos usuários.');
+      if (password.length < 6) throw new Error('A senha deve ter pelo menos 6 caracteres.');
+      
+      const authResult = await apiService.syncUserWithAuth(data.username, password);
 
       // Save to Firestore without the password for better security
-      // We explicitly exclude password and ensure it's not even a key in the object
-      const { password, ...firestoreData } = data;
+      const { password: _, ...firestoreData } = data;
       const cleanData = {
-        ...firestoreData,
+         ...firestoreData,
+        uid: authResult.localId || null, // Store the Auth UID if we have it
+        username: String(data.username).toLowerCase().replace(/\s+/g, ''),
+        email: `${String(data.username).toLowerCase().replace(/\s+/g, '')}@skysmart.com`,
         updated_at: serverTimestamp(),
-        encryption_status: 'auth_managed' // Marker that password is NOT here
+        created_at: serverTimestamp(),
+        encryption_status: 'auth_managed'
       };
       
       const docRef = await addDoc(collection(db, 'users'), cleanData);
+      console.log('[UserService] User added successfully with ID:', docRef.id);
       
       return { id: docRef.id };
     } catch (error) {

@@ -93,37 +93,6 @@ export const Settings = ({
 
   const isSuperAdmin = currentUserEmail === 'admin@skysmart.com' || currentUserEmail === 'Diesel.087@gmail.com';
 
-  const handleSyncUsers = async () => {
-    setIsSyncing(true);
-    setError(null);
-    try {
-      let successCount = 0;
-      let skipCount = 0;
-      for (const user of users) {
-        if (user.username && user.password) {
-          try {
-            await apiService.syncUserWithAuth(user.username, user.password);
-            successCount++;
-          } catch (e) {
-            console.error(`Error syncing ${user.username}:`, e);
-          }
-        } else {
-          skipCount++;
-        }
-      }
-      
-      if (successCount === 0 && skipCount > 0) {
-        alert(`Sincronização concluída! ${successCount} usuários processados. ${skipCount} usuários foram ignorados por não possuírem senha em cache (senhas não são armazenadas no banco de perfis por segurança, de modo que só podem ser sincronizadas no momento exato da criação ou alteração).`);
-      } else {
-        alert(`Sincronização concluída! ${successCount} usuários processados.`);
-      }
-    } catch (err: any) {
-      setError('Erro na sincronização: ' + err.message);
-    } finally {
-      setIsSyncing(false);
-    }
-  };
-
   const handleBackup = async () => {
     setIsBackingUp(true);
     setError(null);
@@ -348,15 +317,6 @@ export const Settings = ({
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Button 
-                variant="secondary" 
-                onClick={handleSyncUsers} 
-                disabled={isSyncing}
-                className="flex items-center gap-2"
-              >
-                {isSyncing ? <Loader2 className="animate-spin" size={18} /> : <ShieldCheck size={18} />}
-                SINCRONIZAR AUTH
-              </Button>
               <Button onClick={() => {
                 setEditingUser(null);
                 setUserFormData({ 
@@ -372,6 +332,19 @@ export const Settings = ({
                 NOVO USUÁRIO
               </Button>
             </div>
+          </div>
+
+          <div className="mb-6 p-4 bg-amber-50 dark:bg-amber-500/10 border border-amber-100 dark:border-amber-500/20 rounded-2xl">
+             <div className="flex gap-3 text-amber-700 dark:text-amber-400">
+               <ShieldCheck size={20} className="flex-shrink-0 mt-0.5" />
+               <div className="text-xs space-y-1">
+                 <p className="font-bold uppercase tracking-wider">Atenção sobre Credenciais:</p>
+                 <p className="uppercase leading-relaxed">
+                   As senhas devem ter no mínimo 6 caracteres. O login é sempre feito com o <span className="font-black italic">Usuário</span> ou com o e-mail <span className="font-black italic">usuario@skysmart.com</span>. 
+                   Se um usuário não conseguir logar mesmo com a senha correta, tente editar o usuário e definir uma nova senha para forçar a sincronização.
+                 </p>
+               </div>
+             </div>
           </div>
 
           <div className="overflow-x-auto">

@@ -32,6 +32,8 @@ import {
   collection, 
   query, 
   orderBy, 
+  where,
+  getDocs,
   Timestamp 
 } from 'firebase/firestore';
 import { auth, db } from './firebase';
@@ -87,16 +89,22 @@ const Login = ({ onLogin }: { onLogin: () => void }) => {
       try {
         await signInWithEmailAndPassword(auth, email, pass);
       } catch (err: any) {
+        // Log detailed error for admin/developer
+        console.error('Initial sign-in attempt failed:', err.code, err.message);
+
         // Special case for bootstrap admin: if it doesn't exist, create it.
         const isAdminAttempt = userPart === 'admin' && (normalizedPassword === 'admin' || normalizedPassword === 'admin123');
         
         if (isAdminAttempt && (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential')) {
           try {
+            console.log('Attempting to bootstrap admin user...');
             // Use 'adminadmin' as the super-secret initial password if it doesn't exist
             const initialPass = 'adminadmin';
             await createUserWithEmailAndPassword(auth, email, initialPass);
-            pass = initialPass; // Update pass variable for successful login logic if needed
+            pass = initialPass; // Update pass variable for successful login logic
+            console.log('Admin user bootstrapped successfully');
           } catch (createErr: any) {
+            console.error('Admin bootstrap failed:', createErr.code, createErr.message);
             // If creation fails (e.g. user already exists but password was wrong), try fallback password if specifically 'admin' was typed
             if (userPart === 'admin' && normalizedPassword === 'admin') {
                try {
@@ -118,6 +126,20 @@ const Login = ({ onLogin }: { onLogin: () => void }) => {
             throw err;
           }
         } else {
+          // For normal users, if login fails, let's verify if they exist in our Firestore
+          if (['auth/user-not-found', 'auth/invalid-credential'].includes(err.code)) {
+             try {
+               const usersSnap = await getDocs(query(collection(db, 'users'), where('username', '==', userPart)));
+               if (!usersSnap.empty) {
+                 const userData = usersSnap.docs[0].data();
+                 console.warn(`User ${userPart} found in Firestore but Auth failed. Possible password mismatch or sync issue.`);
+                 // Throw a more specific error or handled later in the catch block
+                 (err as any)._userExistsInFirestore = true;
+               }
+             } catch (checkErr) {
+               console.error('Error verifying user in Firestore:', checkErr);
+             }
+          }
           throw err;
         }
       }
@@ -132,7 +154,11 @@ const Login = ({ onLogin }: { onLogin: () => void }) => {
       if (err.code === 'auth/network-request-failed') {
         setError('ERRO DE CONEXÃO. VERIFIQUE SUA INTERNET E TENTE NOVAMENTE.');
       } else if (['auth/user-not-found', 'auth/wrong-password', 'auth/invalid-credential', 'auth/invalid-email'].includes(err.code)) {
-        setError('USUÁRIO OU SENHA INCORRETOS. SE VOCÊ ACABOU DE CRIAR ESTE USUÁRIO, TENTE NOVAMENTE EM ALGUNS SEGUNDOS.');
+        if (err._userExistsInFirestore) {
+          setError('SENHA INCORRETA OU USUÁRIO NÃO SINCRONIZADO. SE VOCÊ ACABOU DE CRIAR ESTE USUÁRIO, AGUARDE UM MOMENTO OU PEÇA AO ADMIN PARA REDEFINIR SUA SENHA.');
+        } else {
+          setError('USUÁRIO NÃO ENCONTRADO OU SENHA INCORRETA. CERTIFIQUE-SE DE QUE O USUÁRIO FOI CRIADO NAS CONFIGURAÇÕES.');
+        }
       } else if (err.code === 'auth/too-many-requests') {
         setError('ACESSO BLOQUEADO TEMPORARIAMENTE POR MUITAS TENTATIVAS.');
       } else if (err.code === 'auth/operation-not-allowed') {
