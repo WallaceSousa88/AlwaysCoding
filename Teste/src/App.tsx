@@ -117,14 +117,6 @@ const Login = ({ onLogin }: { onLogin: () => void }) => {
               throw err; 
             }
           }
-        } else if (userPart === 'admin' && normalizedPassword === 'admin' && err.code === 'auth/invalid-credential') {
-          // One more fallback for 'admin' typed exactly as admin/admin
-          try {
-            await signInWithEmailAndPassword(auth, email, 'admin123');
-            pass = 'admin123';
-          } catch (e) {
-            throw err;
-          }
         } else {
           // For normal users, if login fails, let's verify if they exist in our Firestore
           if (['auth/user-not-found', 'auth/invalid-credential'].includes(err.code)) {
@@ -132,9 +124,13 @@ const Login = ({ onLogin }: { onLogin: () => void }) => {
                const usersSnap = await getDocs(query(collection(db, 'users'), where('username', '==', userPart)));
                if (!usersSnap.empty) {
                  const userData = usersSnap.docs[0].data();
-                 console.warn(`User ${userPart} found in Firestore but Auth failed. Possible password mismatch or sync issue.`);
-                 // Throw a more specific error or handled later in the catch block
-                 (err as any)._userExistsInFirestore = true;
+                 console.warn(`User ${userPart} found in Firestore. Code: ${err.code}`);
+                 
+                 if (userData.auth_sync_status === 'mismatch') {
+                   (err as any)._customError = 'CONFLITO DE LOGIN: Este usuário existe mas tem uma senha diferente da registrada no banco de perfis. Peça ao admin para trocar seu usuário ou redefinir sua conta.';
+                 } else {
+                   (err as any)._userExistsInFirestore = true;
+                 }
                }
              } catch (checkErr) {
                console.error('Error verifying user in Firestore:', checkErr);
@@ -151,7 +147,9 @@ const Login = ({ onLogin }: { onLogin: () => void }) => {
         email: email
       });
       
-      if (err.code === 'auth/network-request-failed') {
+      if (err._customError) {
+        setError(err._customError);
+      } else if (err.code === 'auth/network-request-failed') {
         setError('ERRO DE CONEXÃO. VERIFIQUE SUA INTERNET E TENTE NOVAMENTE.');
       } else if (['auth/user-not-found', 'auth/wrong-password', 'auth/invalid-credential', 'auth/invalid-email'].includes(err.code)) {
         if (err._userExistsInFirestore) {

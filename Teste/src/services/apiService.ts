@@ -105,15 +105,27 @@ export const apiService = {
       if (!response.ok) {
         if (data.error?.message === 'EMAIL_EXISTS') {
           console.log(`[AuthSync] User ${email} already exists in Auth. Existing credentials will be used.`);
-          // If the user exists, we don't get the localId unless we sign in or use admin SDK
-          // For now we return success without localId if it already exists
-          return { success: true, message: 'User already exists' };
+          // Try to sign in with provided password to see if it's already correct
+          try {
+            const signInResponse = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${FIREBASE_API_KEY}`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ email, password, returnSecureToken: true })
+            });
+            const signInData = await signInResponse.json();
+            if (signInResponse.ok) {
+              return { success: true, localId: signInData.localId, alreadyExisted: true, passwordCorrect: true, status: 'verified' };
+            }
+          } catch (e) {
+             // Ignore sign in failure
+          }
+          return { success: true, alreadyExisted: true, passwordCorrect: false, status: 'mismatch' };
         }
         console.error('[AuthSync] Identity Toolkit Error Payload:', data);
         throw new Error(data.error?.message || 'Erro ao sincronizar com Auth');
       }
       console.log(`[AuthSync] Successfully created/synced auth for ${email}`);
-      return { success: true, localId: data.localId };
+      return { success: true, localId: data.localId, alreadyExisted: false, status: 'created' };
     } catch (error) {
       console.error('[AuthSync] Auth Sync Error:', error);
       throw error;
@@ -996,6 +1008,7 @@ export const apiService = {
       const cleanData = {
          ...firestoreData,
         uid: authResult.localId || null, // Store the Auth UID if we have it
+        auth_sync_status: authResult.status, // Store 'created', 'verified', or 'mismatch'
         username: String(data.username).toLowerCase().replace(/\s+/g, ''),
         email: `${String(data.username).toLowerCase().replace(/\s+/g, '')}@skysmart.com`,
         updated_at: serverTimestamp(),
@@ -1015,9 +1028,13 @@ export const apiService = {
     try {
       // Sync with Auth if password is provided
       if (data.password && String(data.password).trim() !== '') {
-        // Note: Password update for existing users via REST API would require their token
-        // For admin flow, we assume initial sync or manual password management
-        await apiService.syncUserWithAuth(data.username || '', String(data.password).trim());
+        const password = String(data.password).trim();
+        const authResult = await apiService.syncUserWithAuth(data.username || '', password);
+        
+        if (authResult.localId) {
+          (data as any).uid = authResult.localId;
+        }
+        (data as any).auth_sync_status = authResult.status;
       }
 
       // Save to Firestore without the password

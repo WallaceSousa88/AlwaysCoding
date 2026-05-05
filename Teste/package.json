@@ -6,12 +6,12 @@
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",
-    "build": "vite build && esbuild server.ts --platform=node --format=esm --outfile=server.js",
+    "build": "vite build",
     "preview": "vite preview",
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit",
     "setup": "npm install && npm audit fix && npm update",
-    "start": "node server.js"
+    "start": "node server.ts"
   },
   "dependencies": {
     "@google/genai": "^1.29.0",

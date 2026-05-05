@@ -95,20 +95,25 @@ async function startServer() {
   }
 
   app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+    console.log(`Server listening on 0.0.0.0:${PORT}`);
+    console.log(`Mode: ${isDev ? 'DEVELOPMENT' : 'PRODUCTION'}`);
   });
 }
 
 function serveStatic(app: any) {
   const distPath = path.join(process.cwd(), 'dist');
   if (fs.existsSync(distPath)) {
+    console.log(`Serving static files from: ${distPath}`);
     app.use(express.static(distPath));
     app.get('*', (req: any, res: any) => {
       res.sendFile(path.join(distPath, 'index.html'));
     });
   } else {
-    console.error('ERRO: Pasta "dist" não encontrada. Execute "npm run build" primeiro.');
+    console.error('ERROR: "dist" folder not found. Run "npm run build" first.');
   }
 }
 
-startServer();
+startServer().catch(err => {
+  console.error('FATAL STARTUP ERROR:', err);
+  process.exit(1);
+});

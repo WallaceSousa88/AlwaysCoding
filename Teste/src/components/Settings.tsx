@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Download, ShieldCheck, Database as DbIcon, Loader2, Upload, Users as UsersIcon, Plus, Edit, Trash2, Key, Eye, EyeOff } from 'lucide-react';
+import { Download, ShieldCheck, ShieldAlert, Database as DbIcon, Loader2, Upload, Users as UsersIcon, Plus, Edit, Trash2, Key, Eye, EyeOff } from 'lucide-react';
 import { Card, ConfirmModal, ErrorAlert, Modal, Input, Select, Button, cn } from './Common';
 import { motion, AnimatePresence } from 'motion/react';
 import { apiService } from '../services/apiService';
@@ -354,6 +354,7 @@ export const Settings = ({
                   <th className="py-3 px-4 text-[10px] font-bold text-zinc-400 uppercase tracking-widest">NOME</th>
                   <th className="py-3 px-4 text-[10px] font-bold text-zinc-400 uppercase tracking-widest">USUÁRIO</th>
                   <th className="py-3 px-4 text-[10px] font-bold text-zinc-400 uppercase tracking-widest">CARGO/PERMISSÃO</th>
+                  <th className="py-3 px-4 text-[10px] font-bold text-zinc-400 uppercase tracking-widest">STATUS AUTH</th>
                   <th className="py-3 px-4 text-[10px] font-bold text-zinc-400 uppercase tracking-widest text-right">AÇÕES</th>
                 </tr>
               </thead>
@@ -380,6 +381,29 @@ export const Settings = ({
                           </span>
                         )}
                       </div>
+                    </td>
+                    <td className="py-3 px-4">
+                      {(user as any).auth_sync_status === 'mismatch' ? (
+                        <div className="flex flex-col gap-0.5">
+                          <div className="flex items-center gap-1.5 text-rose-600 dark:text-rose-400">
+                            <ShieldAlert size={14} className="animate-pulse" />
+                            <span className="text-[10px] font-bold uppercase tracking-widest">CONFLITO</span>
+                          </div>
+                          <span className="text-[8px] text-zinc-400 font-bold uppercase leading-tight max-w-[120px]">
+                            SENHA DIFERENTE DA ORIGINAL. USE A SENHA ANTERIOR OU MUDE O NOME DE USUÁRIO.
+                          </span>
+                        </div>
+                      ) : ((user as any).auth_sync_status === 'created' || (user as any).auth_sync_status === 'verified' || (user as any).uid) ? (
+                        <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
+                          <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
+                          <span className="text-[10px] font-bold uppercase tracking-widest">SINCRONIZADO</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400">
+                          <div className="w-1.5 h-1.5 bg-amber-500 rounded-full" />
+                          <span className="text-[10px] font-bold uppercase tracking-widest">PENDENTE</span>
+                        </div>
+                      )}
                     </td>
                     <td className="py-3 px-4 text-right">
                       <div className="flex items-center justify-end gap-2">
