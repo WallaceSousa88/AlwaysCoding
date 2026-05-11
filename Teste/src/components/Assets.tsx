@@ -318,12 +318,6 @@ export const Assets = ({
 
           if (!description) {
             errors.description = 'DESCRIÇÃO É OBRIGATÓRIA';
-          } else {
-            const isDuplicate = assets.some(a => 
-              a.id !== editingAsset?.id && 
-              a.description.toUpperCase() === description.toUpperCase()
-            );
-            if (isDuplicate) errors.description = 'PATRIMÔNIO JÁ CADASTRADO COM ESTA DESCRIÇÃO';
           }
 
           if (!assetNumber) {

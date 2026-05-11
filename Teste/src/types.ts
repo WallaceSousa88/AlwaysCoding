@@ -2,6 +2,7 @@ export type Permission = 'dashboard' | 'kanban' | 'service_entry' | 'production'
 
 export interface User {
   id: string | number;
+  uid?: string;
   name: string;
   email: string;
   username?: string;

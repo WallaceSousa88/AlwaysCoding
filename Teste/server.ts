@@ -4,9 +4,9 @@ import { fileURLToPath } from 'url';
 import fs from 'fs';
 import multer from 'multer';
 import sharp from 'sharp';
+import AdmZip from 'adm-zip';
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 const uploadsDir = path.join(process.cwd(), 'uploads');
 const projectsDir = path.join(uploadsDir, 'projects');
@@ -25,7 +25,8 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
-  app.use(express.json());
+  app.use(express.json({ limit: '50mb' }));
+  app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
   // Health check
   app.get('/api/health', (req, res) => {
@@ -61,6 +62,66 @@ async function startServer() {
     } catch (error) {
       console.error('Erro no upload:', error);
       res.status(500).json({ error: 'Erro ao processar arquivo' });
+    }
+  });
+
+  app.post('/api/backup', async (req, res) => {
+    try {
+      const dbData = req.body;
+      const zip = new AdmZip();
+      
+      // Add database data
+      zip.addFile('database.json', Buffer.from(JSON.stringify(dbData, null, 2), 'utf8'));
+      
+      // Add uploads folder
+      if (fs.existsSync(uploadsDir)) {
+        zip.addLocalFolder(uploadsDir, 'uploads');
+      }
+      
+      const zipBuffer = zip.toBuffer();
+      
+      res.setHeader('Content-Type', 'application/zip');
+      res.setHeader('Content-Disposition', 'attachment; filename=backup.zip');
+      res.send(zipBuffer);
+    } catch (error: any) {
+      console.error('Backup error:', error);
+      res.status(500).json({ error: 'Erro ao gerar backup: ' + error.message });
+    }
+  });
+
+  app.post('/api/restore', upload.single('file'), async (req: any, res: any) => {
+    if (!req.file) return res.status(400).json({ error: 'Nenhum arquivo enviado' });
+    
+    try {
+      const zip = new AdmZip(req.file.buffer);
+      const zipEntries = zip.getEntries();
+      
+      let dbData = null;
+      let filesRestored = 0;
+      
+      for (const entry of zipEntries) {
+        if (entry.entryName === 'database.json') {
+          dbData = JSON.parse(entry.getData().toString('utf8'));
+        } else if (entry.entryName.startsWith('uploads/')) {
+          // Extract file to uploads directory
+          const targetPath = path.join(process.cwd(), entry.entryName);
+          const dirPath = path.dirname(targetPath);
+          
+          if (!fs.existsSync(dirPath)) {
+            fs.mkdirSync(dirPath, { recursive: true });
+          }
+          
+          if (!entry.isDirectory) {
+            fs.writeFileSync(targetPath, entry.getData());
+            filesRestored++;
+          }
+        }
+      }
+      
+      res.json({ data: dbData, filesRestored });
+    } catch (error: any) {
+      console.error('Restore error:', error);
+      res.status(500).json({ error: 'Erro ao processar backup: ' + error.message });
     }
   });
 

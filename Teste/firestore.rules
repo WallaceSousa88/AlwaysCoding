@@ -53,18 +53,23 @@ service cloud.firestore {
 
     function isAdmin() {
       return isAuthenticated() &&
-        (isSuperAdmin() || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Administrador');
+        (isSuperAdmin() || 
+         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Administrador'));
     }
 
     function canManageSettings() {
       return isAuthenticated() &&
         (isAdmin() || 
-         ('settings' in get(/databases/$(database)/documents/users/$(request.auth.uid)).data.permissions));
+         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+          'settings' in get(/databases/$(database)/documents/users/$(request.auth.uid)).data.permissions));
     }
 
     function hasRole(role) {
       return isAuthenticated() && 
-        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == role || isAdmin());
+        (isAdmin() || 
+         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == role));
     }
 
     function isValidEmail(email) {
@@ -78,6 +83,11 @@ service cloud.firestore {
     // ===============================================================
     // Rules
     // ===============================================================
+
+    match /public_auth_map/{username} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
 
     match /users/{userId} {
       allow read: if isAuthenticated();

@@ -34,6 +34,9 @@ import {
   orderBy, 
   where,
   getDocs,
+  getDoc,
+  setDoc,
+  doc,
   Timestamp 
 } from 'firebase/firestore';
 import { auth, db } from './firebase';
@@ -82,7 +85,29 @@ const Login = ({ onLogin }: { onLogin: () => void }) => {
     // Special handling for admin/admin bootstrap
     if (userPart === 'admin' && normalizedPassword === 'admin') {
       email = 'admin@skysmart.com';
-      pass = 'adminadmin'; // Default password for initial admin
+      pass = 'adminadmin'; 
+    } else {
+      // 1. For staff users, look up their specifically mapped auth_email in the public map
+      // This bypasses permission issues with the main users collection
+      try {
+        const mapRef = doc(db, 'public_auth_map', userPart);
+        const mapSnap = await getDoc(mapRef);
+        
+        if (mapSnap.exists()) {
+          const mapData = mapSnap.data();
+          if (mapData.auth_email) {
+            email = mapData.auth_email;
+            console.log(`[Login] Using mapped identity: ${email}`);
+          }
+        } else {
+          // Fallback check: if not in public map, maybe it's an old user?
+          // We can't really check 'users' collection due to permissions,
+          // so we just proceed with the default email.
+          console.log(`[Login] No public mapping for ${userPart}, using default email.`);
+        }
+      } catch (lookupErr) {
+        console.warn('[Login] Public map lookup failed:', lookupErr);
+      }
     }
 
     try {
@@ -97,12 +122,28 @@ const Login = ({ onLogin }: { onLogin: () => void }) => {
         
         if (isAdminAttempt && (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential')) {
           try {
-            console.log('Attempting to bootstrap admin user...');
+            console.log('Attempting to bootstrap admin user in Auth...');
             // Use 'adminadmin' as the super-secret initial password if it doesn't exist
             const initialPass = 'adminadmin';
-            await createUserWithEmailAndPassword(auth, email, initialPass);
-            pass = initialPass; // Update pass variable for successful login logic
-            console.log('Admin user bootstrapped successfully');
+            const userCred = await createUserWithEmailAndPassword(auth, email, initialPass);
+            pass = initialPass; 
+            console.log('Admin user bootstrapped successfully in Auth');
+            
+            // Also ensure document exists in Firestore
+            try {
+              await setDoc(doc(db, 'users', userCred.user.uid), {
+                name: 'Administrador do Sistema',
+                username: 'admin',
+                role: 'Administrador',
+                email: 'admin@skysmart.com',
+                permissions: ['dashboard', 'kanban', 'service_entry', 'production', 'clients', 'suppliers', 'assets', 'inventory', 'financial', 'audit', 'settings', 'values'],
+                created_at: Timestamp.now(),
+                updated_at: Timestamp.now()
+              });
+              console.log('Admin profile created in Firestore');
+            } catch (fsErr) {
+              console.error('Failed to create admin profile in Firestore:', fsErr);
+            }
           } catch (createErr: any) {
             console.error('Admin bootstrap failed:', createErr.code, createErr.message);
             // If creation fails (e.g. user already exists but password was wrong), try fallback password if specifically 'admin' was typed
@@ -118,22 +159,16 @@ const Login = ({ onLogin }: { onLogin: () => void }) => {
             }
           }
         } else {
-          // For normal users, if login fails, let's verify if they exist in our Firestore
+          // For normal users, if login fails, let's verify if they exist in our record
           if (['auth/user-not-found', 'auth/invalid-credential'].includes(err.code)) {
              try {
-               const usersSnap = await getDocs(query(collection(db, 'users'), where('username', '==', userPart)));
-               if (!usersSnap.empty) {
-                 const userData = usersSnap.docs[0].data();
-                 console.warn(`User ${userPart} found in Firestore. Code: ${err.code}`);
-                 
-                 if (userData.auth_sync_status === 'mismatch') {
-                   (err as any)._customError = 'CONFLITO DE LOGIN: Este usuário existe mas tem uma senha diferente da registrada no banco de perfis. Peça ao admin para trocar seu usuário ou redefinir sua conta.';
-                 } else {
-                   (err as any)._userExistsInFirestore = true;
-                 }
+               const mapSnap = await getDoc(doc(db, 'public_auth_map', userPart));
+               if (mapSnap.exists()) {
+                 console.warn(`User ${userPart} found in public map. Code: ${err.code}`);
+                 (err as any)._userExistsInFirestore = true;
                }
              } catch (checkErr) {
-               console.error('Error verifying user in Firestore:', checkErr);
+               console.error('Error verifying user in record:', checkErr);
              }
           }
           throw err;
@@ -147,9 +182,7 @@ const Login = ({ onLogin }: { onLogin: () => void }) => {
         email: email
       });
       
-      if (err._customError) {
-        setError(err._customError);
-      } else if (err.code === 'auth/network-request-failed') {
+      if (err.code === 'auth/network-request-failed') {
         setError('ERRO DE CONEXÃO. VERIFIQUE SUA INTERNET E TENTE NOVAMENTE.');
       } else if (['auth/user-not-found', 'auth/wrong-password', 'auth/invalid-credential', 'auth/invalid-email'].includes(err.code)) {
         if (err._userExistsInFirestore) {
@@ -306,10 +339,7 @@ export default function App() {
   const [serviceEntries, setServiceEntries] = useState<ServiceEntryType[]>([]);
   const [systemUsers, setSystemUsers] = useState<User[]>([]);
 
-  const currentUserProfile = systemUsers.find(u => 
-    u.email === user?.email || 
-    (u.username && user?.email && u.username.toLowerCase().replace(/\s+/g, '') === user.email.split('@')[0].toLowerCase())
-  );
+  const currentUserProfile = systemUsers.find(u => u.uid === user?.uid || u.id === user?.uid);
   const isAdmin = (user?.email === 'admin@skysmart.com' || user?.email === 'Diesel.087@gmail.com' || currentUserProfile?.role === 'Administrador');
   const userPermissions = isAdmin
     ? ['dashboard', 'kanban', 'service_entry', 'production', 'clients', 'suppliers', 'assets', 'inventory', 'financial', 'audit', 'settings', 'values']
@@ -513,9 +543,6 @@ export default function App() {
     
     if (!data.description) {
       errors.description = 'DESCRIÇÃO É OBRIGATÓRIA';
-    } else {
-      const isDuplicate = assets.some(a => a.id !== editingId && a.description.toUpperCase() === data.description.toUpperCase());
-      if (isDuplicate) errors.description = 'DESCRIÇÃO JÁ CADASTRADA';
     }
 
     if (!data.asset_number) {
@@ -1151,6 +1178,16 @@ export default function App() {
   };
 
   const renderContent = () => {
+    // Show loading while we find the profile for a non-bootstrap-admin
+    if (user && !isAdmin && systemUsers.length === 0 && isFetching) {
+      return (
+        <div className="flex flex-col items-center justify-center h-full text-zinc-400 space-y-4">
+          <Loader2 className="animate-spin" size={48} />
+          <p className="text-sm font-bold uppercase tracking-widest">Carregando Perfil...</p>
+        </div>
+      );
+    }
+
     if (!userPermissions.includes(activeTab as any)) {
       return (
         <div className="flex flex-col items-center justify-center h-full text-zinc-400 space-y-4">

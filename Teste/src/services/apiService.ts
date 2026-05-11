@@ -5,6 +5,7 @@ import {
   updateDoc, 
   deleteDoc, 
   doc, 
+  setDoc,
   query, 
   where, 
   orderBy, 
@@ -88,44 +89,47 @@ import firebaseConfig from '../../firebase-applet-config.json';
 const FIREBASE_API_KEY = firebaseConfig.apiKey;
 
 export const apiService = {
-  // Helper for Auth REST API
+  // Helper for Auth via Admin SDK (via server side route)
   syncUserWithAuth: async (username: string, password: string) => {
     const normalizedUsername = username.toLowerCase().replace(/\s+/g, '');
-    const email = `${normalizedUsername}@skysmart.com`;
-    console.log(`[AuthSync] Starting sync for ${email}...`);
+    
+    // We generate a unique internal email to avoid conflicts and allow password "resets" 
+    // by simply creating a new auth entry if the project doesn't allow admin overrides.
+    // We use a prefix plus the username and a short random string.
+    const uniqueId = Math.random().toString(36).substring(2, 7);
+    const internalEmail = `user_${normalizedUsername}_${uniqueId}@skysmart.auth`;
+    
+    console.log(`[AuthSync] Synchronizing ${username} with internal ID...`);
+    
     try {
-      // Try to create user
+      // Create a new auth entry for this user version
       const response = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${FIREBASE_API_KEY}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, returnSecureToken: true })
+        body: JSON.stringify({ email: internalEmail, password, returnSecureToken: true })
       });
 
       const data = await response.json();
+
       if (!response.ok) {
-        if (data.error?.message === 'EMAIL_EXISTS') {
-          console.log(`[AuthSync] User ${email} already exists in Auth. Existing credentials will be used.`);
-          // Try to sign in with provided password to see if it's already correct
-          try {
-            const signInResponse = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${FIREBASE_API_KEY}`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ email, password, returnSecureToken: true })
-            });
-            const signInData = await signInResponse.json();
-            if (signInResponse.ok) {
-              return { success: true, localId: signInData.localId, alreadyExisted: true, passwordCorrect: true, status: 'verified' };
-            }
-          } catch (e) {
-             // Ignore sign in failure
-          }
-          return { success: true, alreadyExisted: true, passwordCorrect: false, status: 'mismatch' };
+        console.error('[AuthSync] Auth Error:', data);
+        if (data.error?.message === 'API_DISABLED') {
+          // Point to Firebase Console instead of GCP console for easier activation
+          throw new Error(`API_DISABLED: O serviço de autenticação está desativado. Para que o reset de senhas funcione, você precisa: 
+1. Acessar: https://console.firebase.google.com/project/${firebaseConfig.projectId}/authentication 
+2. Clicar em "Primeiros Passos" (Get Started)
+3. Ativar o método "E-mail/Senha"`);
         }
-        console.error('[AuthSync] Identity Toolkit Error Payload:', data);
-        throw new Error(data.error?.message || 'Erro ao sincronizar com Auth');
+        throw new Error(data.error?.message || 'Erro ao criar conta de acesso');
       }
-      console.log(`[AuthSync] Successfully created/synced auth for ${email}`);
-      return { success: true, localId: data.localId, alreadyExisted: false, status: 'created' };
+      
+      console.log(`[AuthSync] Successfully synchronized ${username}`);
+      return { 
+        success: true, 
+        internalId: data.localId, 
+        auth_email: internalEmail, // We MUST store this in Firestore to know which email to login with
+        status: 'verified' 
+      };
     } catch (error) {
       console.error('[AuthSync] Auth Sync Error:', error);
       throw error;
@@ -958,7 +962,7 @@ export const apiService = {
     const collectionsToClear = [
       'products', 'movements', 'clients', 'suppliers', 
       'assets', 'orders', 'categories', 'locations', 
-      'units', 'audit_logs', 'service_entries'
+      'units', 'audit_logs', 'service_entries', 'users', 'public_auth_map'
     ];
 
     for (const collName of collectionsToClear) {
@@ -971,10 +975,69 @@ export const apiService = {
       }
     }
   },
+  getFullDatabase: async () => {
+    const collectionsToExport = [
+      'products', 'movements', 'clients', 'suppliers', 
+      'assets', 'orders', 'categories', 'locations', 
+      'units', 'audit_logs', 'service_entries', 'users', 'public_auth_map'
+    ];
+    
+    const fullData: Record<string, any[]> = {};
+    
+    for (const collName of collectionsToExport) {
+      try {
+        const snap = await getDocs(collection(db, collName));
+        fullData[collName] = snap.docs.map(d => ({ 
+          _id: d.id, 
+          ...d.data() 
+        }));
+      } catch (error) {
+        console.error(`Error exporting collection ${collName}:`, error);
+        fullData[collName] = [];
+      }
+    }
+    
+    return fullData;
+  },
   importDatabase: async (file: File) => {
-    // This was for SQLite, for Firebase we might not need it or it should be different.
-    // For now, let's just add a placeholder to fix the lint error.
-    throw new Error('Importação de banco de dados não suportada para Firebase diretamente via este método.');
+    // We send the zip to the server to extract it and return the database.json
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    try {
+      const response = await fetch('/api/restore', {
+        method: 'POST',
+        body: formData
+      });
+      
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || 'Falha ao processar arquivo de backup');
+      }
+      
+      const { data, filesRestored } = await response.json();
+      
+      if (!data) throw new Error('Arquivo de backup inválido ou sem dados.');
+      
+      // Clear current data
+      await apiService.resetDatabase();
+      
+      // Import collections
+      const collections = Object.keys(data);
+      for (const collName of collections) {
+        const items = data[collName];
+        for (const item of items) {
+          const { _id, ...docData } = item;
+          // Use setDoc to preserve old IDs
+          await setDoc(doc(db, collName, _id), docData);
+        }
+      }
+      
+      return { success: true, filesRestored };
+    } catch (error: any) {
+      console.error('Error importing database:', error);
+      throw error;
+    }
   },
 
   // Users
@@ -1007,19 +1070,30 @@ export const apiService = {
       const { password: _, ...firestoreData } = data;
       const cleanData = {
          ...firestoreData,
-        uid: authResult.localId || null, // Store the Auth UID if we have it
-        auth_sync_status: authResult.status, // Store 'created', 'verified', or 'mismatch'
+        uid: authResult.internalId || null, // Store the Auth UID (internalId from our new sync)
+        auth_email: authResult.auth_email || null, // CRITICAL: Store the internal email used for Auth
+        auth_sync_status: authResult.status, 
         username: String(data.username).toLowerCase().replace(/\s+/g, ''),
-        email: `${String(data.username).toLowerCase().replace(/\s+/g, '')}@skysmart.com`,
         updated_at: serverTimestamp(),
         created_at: serverTimestamp(),
         encryption_status: 'auth_managed'
       };
       
-      const docRef = await addDoc(collection(db, 'users'), cleanData);
-      console.log('[UserService] User added successfully with ID:', docRef.id);
+      // Use setDoc with the uid as the document ID to match security rules expectations
+      const userDocId = authResult.internalId || `temp_${Date.now()}`;
+      await setDoc(doc(db, 'users', userDocId), cleanData);
       
-      return { id: docRef.id };
+      // Update the public auth map for login lookups
+      if (authResult.auth_email) {
+        await setDoc(doc(db, 'public_auth_map', cleanData.username), {
+          auth_email: authResult.auth_email,
+          updated_at: serverTimestamp()
+        });
+      }
+      
+      console.log('[UserService] User created successfully with ID:', userDocId);
+      
+      return { id: userDocId };
     } catch (error) {
       handleFirestoreError(error, OperationType.CREATE, 'users');
     }
@@ -1031,8 +1105,11 @@ export const apiService = {
         const password = String(data.password).trim();
         const authResult = await apiService.syncUserWithAuth(data.username || '', password);
         
-        if (authResult.localId) {
-          (data as any).uid = authResult.localId;
+        if (authResult.internalId) {
+          (data as any).uid = authResult.internalId;
+        }
+        if (authResult.auth_email) {
+          (data as any).auth_email = authResult.auth_email;
         }
         (data as any).auth_sync_status = authResult.status;
       }
@@ -1045,6 +1122,14 @@ export const apiService = {
         password: deleteField(),
         updated_at: serverTimestamp()
       });
+
+      // Update public auth map if email changed (reset)
+      if ((data as any).auth_email && data.username) {
+        await setDoc(doc(db, 'public_auth_map', String(data.username).toLowerCase().replace(/\s+/g, '')), {
+          auth_email: (data as any).auth_email,
+          updated_at: serverTimestamp()
+        });
+      }
 
       return { success: true };
     } catch (error) {
