@@ -462,6 +462,7 @@ export default function App() {
     const typeField = isSupplier ? 'tipo' : 'tipo_cliente';
     const list = isSupplier ? suppliers : clients;
     
+    // Uniqueness checks for key fields
     if (data[typeField] === 'PF') {
       if (!data.name) {
         errors.name = 'NOME É OBRIGATÓRIO';
@@ -520,15 +521,6 @@ export default function App() {
         const isDuplicate = list.some(item => item.id !== editingId && item.telefone1 === data.telefone1);
         if (isDuplicate) errors.telefone1 = 'TELEFONE JÁ CADASTRADO';
       }
-    }
-
-    // Endereco uniqueness
-    if (data.endereco) {
-      const isDuplicate = list.some(item => 
-        item.id !== editingId && 
-        item.endereco?.toUpperCase() === data.endereco.toUpperCase()
-      );
-      if (isDuplicate) errors.endereco = 'ENDEREÇO JÁ CADASTRADO';
     }
 
     if (data.cep && !validateCEP(data.cep)) {
