@@ -8,24 +8,92 @@ import { maskValue } from '../../lib/valueMask';
 interface MovementTableProps {
   movements: Movement[];
   visibleColumns: string[];
+  requestSort: (key: any) => void;
+  getSortIcon: (key: any) => React.ReactNode;
   canSeeValues?: boolean;
 }
 
-export const MovementTable = ({ movements, visibleColumns, canSeeValues = true }: MovementTableProps) => {
+export const MovementTable = ({ 
+  movements, 
+  visibleColumns, 
+  requestSort,
+  getSortIcon,
+  canSeeValues = true 
+}: MovementTableProps) => {
   return (
     <table className="w-full text-left border-collapse">
       <thead>
         <tr className="bg-zinc-50/50 dark:bg-zinc-800/50">
-          {visibleColumns.includes('id') && <th className="px-6 py-3 text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">ID</th>}
-          {visibleColumns.includes('date') && <th className="px-6 py-3 text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Data</th>}
-          {visibleColumns.includes('type') && <th className="px-6 py-3 text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Tipo</th>}
-          {visibleColumns.includes('product_name') && <th className="px-6 py-3 text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Produto</th>}
-          {visibleColumns.includes('quantity') && <th className="px-6 py-3 text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Quantidade</th>}
-          {visibleColumns.includes('supplier_name') && <th className="px-6 py-3 text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Fornecedor</th>}
-          {visibleColumns.includes('location_destination') && <th className="px-6 py-3 text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Origem/Destino</th>}
-          {visibleColumns.includes('doc_reason') && <th className="px-6 py-3 text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Documento/Motivo</th>}
-          {visibleColumns.includes('xml') && <th className="px-6 py-3 text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">XML</th>}
-          {visibleColumns.includes('attachments') && <th className="px-6 py-3 text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Anexos</th>}
+          {visibleColumns.includes('id') && (
+            <th 
+              onClick={() => requestSort('id')}
+              className="px-6 py-3 text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider cursor-pointer group"
+            >
+              <div className="flex items-center gap-1">ID {getSortIcon('id')}</div>
+            </th>
+          )}
+          {visibleColumns.includes('date') && (
+            <th 
+              onClick={() => requestSort('date')}
+              className="px-6 py-3 text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider cursor-pointer group"
+            >
+              <div className="flex items-center gap-1">Data {getSortIcon('date')}</div>
+            </th>
+          )}
+          {visibleColumns.includes('type') && (
+            <th 
+              onClick={() => requestSort('type')}
+              className="px-6 py-3 text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider cursor-pointer group"
+            >
+              <div className="flex items-center gap-1">Tipo {getSortIcon('type')}</div>
+            </th>
+          )}
+          {visibleColumns.includes('product_name') && (
+            <th 
+              onClick={() => requestSort('product_name')}
+              className="px-6 py-3 text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider cursor-pointer group"
+            >
+              <div className="flex items-center gap-1">Produto {getSortIcon('product_name')}</div>
+            </th>
+          )}
+          {visibleColumns.includes('quantity') && (
+            <th 
+              onClick={() => requestSort('quantity')}
+              className="px-6 py-3 text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider cursor-pointer group"
+            >
+              <div className="flex items-center gap-1">Quantidade {getSortIcon('quantity')}</div>
+            </th>
+          )}
+          {visibleColumns.includes('supplier_name') && (
+            <th 
+              onClick={() => requestSort('supplier_name')}
+              className="px-6 py-3 text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider cursor-pointer group"
+            >
+              <div className="flex items-center gap-1">Fornecedor {getSortIcon('supplier_name')}</div>
+            </th>
+          )}
+          {visibleColumns.includes('location_destination') && (
+            <th 
+              onClick={() => requestSort('location_destination')}
+              className="px-6 py-3 text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider cursor-pointer group"
+            >
+              <div className="flex items-center gap-1">Origem/Destino {getSortIcon('location_destination')}</div>
+            </th>
+          )}
+          {visibleColumns.includes('doc_reason') && (
+            <th 
+              onClick={() => requestSort('doc_reason')}
+              className="px-6 py-3 text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider cursor-pointer group"
+            >
+              <div className="flex items-center gap-1">Documento/Motivo {getSortIcon('doc_reason')}</div>
+            </th>
+          )}
+          {visibleColumns.includes('xml') && (
+            <th className="px-6 py-3 text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">XML</th>
+          )}
+          {visibleColumns.includes('attachments') && (
+            <th className="px-6 py-3 text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Anexos</th>
+          )}
         </tr>
       </thead>
       <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">

@@ -1147,6 +1147,33 @@ export const ProductDetailModal = ({
   onDelete
 }: any) => {
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
+  const [sortConfig, setSortConfig] = useState<{ key: keyof Movement; direction: 'asc' | 'desc' } | null>({ key: 'date', direction: 'desc' });
+
+  const sortedMovements = React.useMemo(() => {
+    if (!sortConfig) return movements;
+    return [...movements].sort((a, b) => {
+      const aValue = a[sortConfig.key];
+      const bValue = b[sortConfig.key];
+      
+      if (aValue === bValue) return 0;
+      
+      const comparison = aValue > bValue ? 1 : -1;
+      return sortConfig.direction === 'asc' ? comparison : -comparison;
+    });
+  }, [movements, sortConfig]);
+
+  const requestSort = (key: keyof Movement) => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const getSortIcon = (key: keyof Movement) => {
+    if (sortConfig?.key !== key) return null;
+    return sortConfig.direction === 'asc' ? <ChevronDown size={10} className="inline ml-1" /> : <ChevronDown size={10} className="inline ml-1 rotate-180" />;
+  };
   
   return (
     <>
@@ -1270,11 +1297,21 @@ export const ProductDetailModal = ({
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-zinc-50/50 dark:bg-zinc-800/50">
-                      <th className="px-4 py-2 text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Data</th>
-                      <th className="px-4 py-2 text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Tipo</th>
-                      <th className="px-4 py-2 text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Qtd</th>
-                      <th className="px-4 py-2 text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">V. Unitário</th>
-                      <th className="px-4 py-2 text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Fornecedor</th>
+                      <th onClick={() => requestSort('date')} className="px-4 py-2 text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700/50 transition-colors">
+                        Data {getSortIcon('date')}
+                      </th>
+                      <th onClick={() => requestSort('type')} className="px-4 py-2 text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700/50 transition-colors">
+                        Tipo {getSortIcon('type')}
+                      </th>
+                      <th onClick={() => requestSort('quantity')} className="px-4 py-2 text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700/50 transition-colors">
+                        Qtd {getSortIcon('quantity')}
+                      </th>
+                      <th onClick={() => requestSort('unit_price')} className="px-4 py-2 text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700/50 transition-colors">
+                        V. Unitário {getSortIcon('unit_price')}
+                      </th>
+                      <th onClick={() => requestSort('supplier_name')} className="px-4 py-2 text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700/50 transition-colors">
+                        Fornecedor {getSortIcon('supplier_name')}
+                      </th>
                       <th className="px-4 py-2 text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Origem/Destino</th>
                       <th className="px-4 py-2 text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Doc/Motivo</th>
                       <th className="px-4 py-2 text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">XML</th>
@@ -1286,12 +1323,12 @@ export const ProductDetailModal = ({
                       <tr>
                         <td colSpan={9} className="px-4 py-8 text-center text-zinc-400 dark:text-zinc-500 text-xs uppercase">CARREGANDO HISTÓRICO...</td>
                       </tr>
-                    ) : movements.length === 0 ? (
+                    ) : sortedMovements.length === 0 ? (
                       <tr>
                         <td colSpan={9} className="px-4 py-8 text-center text-zinc-400 dark:text-zinc-500 text-xs uppercase">NENHUMA MOVIMENTAÇÃO ENCONTRADA.</td>
                       </tr>
                     ) : (
-                      movements.map((m: Movement) => {
+                      sortedMovements.map((m: Movement) => {
                         let invoices = [];
                         try {
                           if (m.invoice_pdf) {

@@ -119,7 +119,8 @@ export const Inventory = ({
     setSearchTerm(val);
     if (onSearchTermChange) onSearchTermChange(val);
   };
-  const [sortConfig, setSortConfig] = useState<{ key: keyof Product | 'status'; direction: 'asc' | 'desc' } | null>(null);
+  const [sortConfig, setSortConfig] = useState<{ key: keyof Product | 'status' | 'total_value'; direction: 'asc' | 'desc' } | null>(null);
+  const [movementSortConfig, setMovementSortConfig] = useState<{ key: keyof Movement | 'product_name' | 'supplier_name'; direction: 'asc' | 'desc' } | null>(null);
   const [selectedProductForDetail, setSelectedProductForDetail] = useState<Product | null>(null);
   const [productMovements, setProductMovements] = useState<Movement[]>([]);
   const [isLoadingMovements, setIsLoadingMovements] = useState(false);
@@ -593,6 +594,9 @@ export const Inventory = ({
         if (sortConfig.key === 'status') {
           aValue = (a.min_quantity !== null && a.quantity <= a.min_quantity) ? 0 : 1;
           bValue = (b.min_quantity !== null && b.quantity <= b.min_quantity) ? 0 : 1;
+        } else if (sortConfig.key === 'total_value') {
+          aValue = (a.quantity || 0) * (a.cost_price || 0);
+          bValue = (b.quantity || 0) * (b.cost_price || 0);
         } else {
           aValue = a[sortConfig.key];
           bValue = b[sortConfig.key];
@@ -619,7 +623,7 @@ export const Inventory = ({
     return result;
   }, [products, searchTerm, sortConfig]);
 
-  const requestSort = (key: keyof Product | 'status') => {
+  const requestSort = (key: keyof Product | 'status' | 'total_value') => {
     let direction: 'asc' | 'desc' = 'asc';
     if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
       direction = 'desc';
@@ -627,7 +631,7 @@ export const Inventory = ({
     setSortConfig({ key, direction });
   };
 
-  const getSortIcon = (key: keyof Product | 'status') => {
+  const getSortIcon = (key: keyof Product | 'status' | 'total_value') => {
     if (!sortConfig || sortConfig.key !== key) return <ChevronDown size={12} className="opacity-0 group-hover:opacity-50" />;
     return sortConfig.direction === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />;
   };
@@ -646,7 +650,7 @@ export const Inventory = ({
   };
 
   const filteredMovements = useMemo(() => {
-    return movements.filter(m => {
+    let result = movements.filter(m => {
       const matchesSearch = Object.values(m).some(val => 
         val !== null && val !== undefined && val.toString().toLowerCase().includes(searchTerm.toLowerCase())
       );
@@ -667,7 +671,49 @@ export const Inventory = ({
       
       return matchesSearch && matchesDate && matchesType && matchesLocation;
     });
-  }, [movements, searchTerm, startDate, endDate, movementTypeFilter, movementLocationFilter]);
+
+    if (movementSortConfig) {
+      result.sort((a, b) => {
+        let aValue: any;
+        let bValue: any;
+
+        if (movementSortConfig.key === 'location_destination') {
+          aValue = a.type === 'IN' ? (a.location || '') : (a.destination || '');
+          bValue = b.type === 'IN' ? (b.location || '') : (b.destination || '');
+        } else if (movementSortConfig.key === 'doc_reason') {
+          aValue = a.type === 'IN' ? (a.doc_number || '') : (a.reason || '');
+          bValue = b.type === 'IN' ? (b.doc_number || '') : (b.reason || '');
+        } else {
+          aValue = (a as any)[movementSortConfig.key] ?? '';
+          bValue = (b as any)[movementSortConfig.key] ?? '';
+        }
+
+        if (typeof aValue === 'string') {
+          aValue = aValue.toLowerCase();
+          bValue = (typeof bValue === 'string' ? bValue.toLowerCase() : '');
+        }
+
+        if (aValue < bValue) return movementSortConfig.direction === 'asc' ? -1 : 1;
+        if (aValue > bValue) return movementSortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+
+    return result;
+  }, [movements, searchTerm, startDate, endDate, movementTypeFilter, movementLocationFilter, movementSortConfig]);
+
+  const requestMovementSort = (key: keyof Movement | 'product_name' | 'supplier_name') => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (movementSortConfig && movementSortConfig.key === key && movementSortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setMovementSortConfig({ key, direction });
+  };
+
+  const getMovementSortIcon = (key: keyof Movement | 'product_name' | 'supplier_name') => {
+    if (!movementSortConfig || movementSortConfig.key !== key) return <ChevronDown size={12} className="opacity-0 group-hover:opacity-50" />;
+    return movementSortConfig.direction === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />;
+  };
 
   return (
     <>
@@ -816,6 +862,8 @@ export const Inventory = ({
             <MovementTable 
               movements={filteredMovements} 
               visibleColumns={visibleMovementColumns}
+              requestSort={requestMovementSort}
+              getSortIcon={getMovementSortIcon}
               canSeeValues={canSeeValues}
             />
           )}

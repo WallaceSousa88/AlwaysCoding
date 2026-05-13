@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Download, ShieldCheck, ShieldAlert, Database as DbIcon, Loader2, Upload, Users as UsersIcon, Plus, Edit, Trash2, Key, Eye, EyeOff } from 'lucide-react';
+import { Download, ShieldCheck, ShieldAlert, Database as DbIcon, Loader2, Upload, Users as UsersIcon, Plus, Edit, Trash2, Key, Eye, EyeOff, ChevronUp, ChevronDown } from 'lucide-react';
 import { Card, ConfirmModal, ErrorAlert, Modal, Input, Select, Button, cn } from './Common';
 import { motion, AnimatePresence } from 'motion/react';
 import { apiService } from '../services/apiService';
@@ -90,6 +90,7 @@ export const Settings = ({
   const [isDeletingCat, setIsDeletingCat] = useState<{ id: string | number; name: string } | null>(null);
   const [isDeletingUnit, setIsDeletingUnit] = useState<{ id: string | number; name: string } | null>(null);
   const [isDeletingLoc, setIsDeletingLoc] = useState<{ id: string | number; name: string } | null>(null);
+  const [userSortConfig, setUserSortConfig] = useState<{ key: keyof User | 'username'; direction: 'asc' | 'desc' } | null>({ key: 'name', direction: 'asc' });
 
   const isSuperAdmin = currentUserEmail === 'admin@skysmart.com' || currentUserEmail === 'Diesel.087@gmail.com';
 
@@ -351,15 +352,43 @@ export const Settings = ({
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-zinc-100 dark:border-zinc-800">
-                  <th className="py-3 px-4 text-[10px] font-bold text-zinc-400 uppercase tracking-widest">NOME</th>
-                  <th className="py-3 px-4 text-[10px] font-bold text-zinc-400 uppercase tracking-widest">USUÁRIO</th>
+                  <th 
+                    onClick={() => {
+                      const direction = userSortConfig?.key === 'name' && userSortConfig.direction === 'asc' ? 'desc' : 'asc';
+                      setUserSortConfig({ key: 'name', direction });
+                    }}
+                    className="py-3 px-4 text-[10px] font-bold text-zinc-400 uppercase tracking-widest cursor-pointer group"
+                  >
+                    <div className="flex items-center gap-1">
+                      NOME
+                      {userSortConfig?.key === 'name' && (userSortConfig.direction === 'asc' ? <ChevronUp size={10} /> : <ChevronDown size={10} />)}
+                    </div>
+                  </th>
+                  <th 
+                    onClick={() => {
+                      const direction = userSortConfig?.key === 'username' && userSortConfig.direction === 'asc' ? 'desc' : 'asc';
+                      setUserSortConfig({ key: 'username', direction });
+                    }}
+                    className="py-3 px-4 text-[10px] font-bold text-zinc-400 uppercase tracking-widest cursor-pointer group"
+                  >
+                    <div className="flex items-center gap-1">
+                      USUÁRIO
+                      {userSortConfig?.key === 'username' && (userSortConfig.direction === 'asc' ? <ChevronUp size={10} /> : <ChevronDown size={10} />)}
+                    </div>
+                  </th>
                   <th className="py-3 px-4 text-[10px] font-bold text-zinc-400 uppercase tracking-widest">CARGO/PERMISSÃO</th>
                   <th className="py-3 px-4 text-[10px] font-bold text-zinc-400 uppercase tracking-widest">STATUS AUTH</th>
                   <th className="py-3 px-4 text-[10px] font-bold text-zinc-400 uppercase tracking-widest text-right">AÇÕES</th>
                 </tr>
               </thead>
               <tbody>
-                {[...users].sort((a, b) => a.name.localeCompare(b.name)).map((user) => (
+                {[...users].sort((a, b) => {
+                  if (!userSortConfig) return 0;
+                  const direction = userSortConfig.direction === 'asc' ? 1 : -1;
+                  const aValue = (a as any)[userSortConfig.key] || '';
+                  const bValue = (b as any)[userSortConfig.key] || '';
+                  return aValue.localeCompare(bValue) * direction;
+                }).map((user) => (
                   <tr key={user.id} className="border-b border-zinc-50 dark:border-zinc-900/50 hover:bg-zinc-50/50 dark:hover:bg-zinc-900/30 transition-colors">
                     <td className="py-3 px-4 text-sm font-medium uppercase">{user.name}</td>
                     <td className="py-3 px-4 text-sm text-zinc-500 dark:text-zinc-400 uppercase">{(user as any).username || '-'}</td>

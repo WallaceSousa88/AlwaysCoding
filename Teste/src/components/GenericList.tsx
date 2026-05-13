@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Search, Plus, Settings, FileText, Download } from 'lucide-react';
+import { Search, Plus, Settings, FileText, Download, ChevronUp, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Card, cn, SearchBar } from './Common';
 import { useDebounce } from '../hooks/useDebounce';
@@ -40,6 +40,7 @@ export const GenericList = ({
   const [visibleColumns, setVisibleColumns] = useState<string[]>([]);
   const [isColumnSelectorOpen, setIsColumnSelectorOpen] = useState(false);
   const columnSelectorRef = useRef<HTMLDivElement>(null);
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
 
   useEffect(() => {
     setVisibleColumns(columns.map(c => c.key).filter(k => k.toLowerCase() !== 'id'));
@@ -59,14 +60,69 @@ export const GenericList = ({
     setSearchTerm(debouncedSearchTerm);
   }, [debouncedSearchTerm]);
 
+  const requestSort = (key: string) => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const getSortIcon = (key: string) => {
+    if (!sortConfig || sortConfig.key !== key) return <ChevronDown size={12} className="opacity-0 group-hover/th:opacity-50" />;
+    return sortConfig.direction === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />;
+  };
+
   const filteredItems = useMemo(() => {
-    return items.filter(item => 
+    let result = items.filter(item => 
       columns.some(col => {
         const val = item[col.key];
         return val !== null && val !== undefined && val.toString().toLowerCase().includes(searchTerm.toLowerCase());
       })
     );
-  }, [items, searchTerm, columns]);
+
+    if (sortConfig) {
+      result.sort((a, b) => {
+        let aValue = a[sortConfig.key];
+        let bValue = b[sortConfig.key];
+
+        if (aValue === null || aValue === undefined) return 1;
+        if (bValue === null || bValue === undefined) return -1;
+
+        if (typeof aValue === 'string') {
+          const aStr = aValue.trim();
+          const bStr = (typeof bValue === 'string' ? bValue.trim() : '');
+
+          // Improved numeric detection for R$ 1.234,56 or pure formatted numbers like 1.234,56
+          const isNumericFormat = (s: string) => /^-?R?\$?\s?[\d.]+(,[\d]{1,2})?$/.test(s) || /^-?[\d.]+(,[\d]{1,2})?$/.test(s);
+          
+          if (isNumericFormat(aStr) && (bStr === '' || isNumericFormat(bStr))) {
+            const parseNum = (s: string) => {
+              if (!s) return 0;
+              const clean = s.replace(/R\$/g, '').replace(/\s/g, '').replace(/\./g, '').replace(',', '.');
+              const n = parseFloat(clean);
+              return isNaN(n) ? 0 : n;
+            };
+            aValue = parseNum(aStr);
+            bValue = parseNum(bStr);
+          } else {
+            aValue = aStr.toLowerCase();
+            bValue = bStr.toLowerCase();
+          }
+        }
+
+        if (aValue < bValue) {
+          return sortConfig.direction === 'asc' ? -1 : 1;
+        }
+        if (aValue > bValue) {
+          return sortConfig.direction === 'asc' ? 1 : -1;
+        }
+        return 0;
+      });
+    }
+
+    return result;
+  }, [items, searchTerm, columns, sortConfig]);
 
   const activeColumns = columns.filter(col => visibleColumns.includes(col.key));
 
@@ -156,7 +212,16 @@ export const GenericList = ({
           <thead>
             <tr className="bg-zinc-50/50 dark:bg-zinc-800/50">
               {activeColumns.map(col => (
-                <th key={col.key} className="px-6 py-3 text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">{col.label}</th>
+                <th 
+                  key={col.key} 
+                  onClick={() => requestSort(col.key)}
+                  className="px-6 py-3 text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider cursor-pointer group/th"
+                >
+                  <div className="flex items-center gap-1">
+                    {col.label}
+                    {getSortIcon(col.key)}
+                  </div>
+                </th>
               ))}
             </tr>
           </thead>

@@ -8,8 +8,8 @@ import { maskValue, formatCurrency } from '../../lib/valueMask';
 interface ProductTableProps {
   products: Product[];
   visibleColumns: string[];
-  requestSort: (key: keyof Product | 'status') => void;
-  getSortIcon: (key: keyof Product | 'status') => React.ReactNode;
+  requestSort: (key: keyof Product | 'status' | 'total_value') => void;
+  getSortIcon: (key: keyof Product | 'status' | 'total_value') => React.ReactNode;
   onProductClick: (p: Product) => void;
   isAdmin?: boolean;
   canSeeValues?: boolean;
@@ -72,9 +72,37 @@ export const ProductTable = ({
               </div>
             </th>
           )}
+          {visibleColumns.includes('unit') && (
+            <th 
+              onClick={() => requestSort('unit' as any)}
+              className="px-6 py-3 text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider cursor-pointer group"
+            >
+              <div className="flex items-center gap-1">
+                Unidade
+                {getSortIcon('unit' as any)}
+              </div>
+            </th>
+          )}
+          {visibleColumns.includes('cost_price') && (
+            <th 
+              onClick={() => requestSort('cost_price' as any)}
+              className="px-6 py-3 text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider cursor-pointer group"
+            >
+              <div className="flex items-center gap-1">
+                V. Unitário
+                {getSortIcon('cost_price' as any)}
+              </div>
+            </th>
+          )}
           {visibleColumns.includes('total_value') && (
-            <th className="px-6 py-3 text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
-              Valor Total
+            <th 
+              onClick={() => requestSort('total_value')}
+              className="px-6 py-3 text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider cursor-pointer group"
+            >
+              <div className="flex items-center gap-1">
+                Valor Total
+                {getSortIcon('total_value')}
+              </div>
             </th>
           )}
           {visibleColumns.includes('min_quantity') && (
@@ -142,6 +170,14 @@ export const ProductTable = ({
                 )}>
                   {isLowStock && <AlertTriangle size={14} />}
                   {maskValue(p.quantity, canSeeValues)} {p.unit}
+                </td>
+              )}
+              {visibleColumns.includes('unit') && (
+                <td className="px-6 py-4 text-sm text-zinc-500 dark:text-zinc-400 uppercase font-bold">{p.unit}</td>
+              )}
+              {visibleColumns.includes('cost_price') && (
+                <td className="px-6 py-4 text-sm text-zinc-900 dark:text-zinc-100 font-medium">
+                  {formatCurrency(p.cost_price, canSeeValues)}
                 </td>
               )}
               {visibleColumns.includes('total_value') && (

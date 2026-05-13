@@ -97,8 +97,39 @@ export const Assets = ({
 
     if (sortConfig) {
       result.sort((a, b) => {
-        const aValue = a[sortConfig.key] ?? '';
-        const bValue = b[sortConfig.key] ?? '';
+        let aValue: any;
+        let bValue: any;
+
+        if (sortConfig.key === 'disposal_value') {
+          const getVal = (asset: Asset) => {
+            if (asset.status === 'BAIXADO') {
+              return asset.disposal_value ?? (asset.disposal_date ? calculateDepreciation(
+                asset.purchase_value,
+                asset.purchase_date,
+                asset.disposal_date,
+                asset.depreciation_type,
+                asset.depreciation_percentage
+              ) : 0);
+            }
+            return calculateDepreciation(
+              asset.purchase_value,
+              asset.purchase_date,
+              new Date().toISOString().split('T')[0],
+              asset.depreciation_type,
+              asset.depreciation_percentage
+            );
+          };
+          aValue = getVal(a);
+          bValue = getVal(b);
+        } else {
+          aValue = a[sortConfig.key] ?? '';
+          bValue = b[sortConfig.key] ?? '';
+        }
+
+        if (typeof aValue === 'string') {
+          aValue = aValue.toLowerCase();
+          bValue = (typeof bValue === 'string' ? bValue.toLowerCase() : '');
+        }
 
         if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
         if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
