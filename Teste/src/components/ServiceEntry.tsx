@@ -307,12 +307,14 @@ export const ServiceEntryModal = ({ isOpen, onClose, onSubmit, editingEntry, cli
             })}
             options={[
               { value: '', label: 'SELECIONE UM PRODUTO' },
-              { value: 'ADESIVO', label: 'ADESIVO' },
-              { value: 'LONA', label: 'LONA' },
-              { value: 'PAINEL REVESTIMENTO', label: 'PAINEL REVESTIMENTO' },
-              { value: 'LETRA CAIXA', label: 'LETRA CAIXA' },
-              { value: 'PLACA', label: 'PLACA' },
-              { value: 'PAINEL DE LED', label: 'PAINEL DE LED' }
+              ...[
+                { value: 'ADESIVO', label: 'ADESIVO' },
+                { value: 'LONA', label: 'LONA' },
+                { value: 'PAINEL REVESTIMENTO', label: 'PAINEL REVESTIMENTO' },
+                { value: 'LETRA CAIXA', label: 'LETRA CAIXA' },
+                { value: 'PLACA', label: 'PLACA' },
+                { value: 'PAINEL DE LED', label: 'PAINEL DE LED' }
+              ].sort((a, b) => a.label.localeCompare(b.label, 'pt-BR'))
             ]}
           />
 
@@ -328,7 +330,7 @@ export const ServiceEntryModal = ({ isOpen, onClose, onSubmit, editingEntry, cli
                 })}
                 options={[
                   { value: '', label: 'SELECIONE UMA OPÇÃO' },
-                  ...selectedCategory.sub.map((s: string) => ({ value: s, label: s }))
+                  ...[...selectedCategory.sub].sort((a, b) => a.localeCompare(b, 'pt-BR')).map((s: string) => ({ value: s, label: s }))
                 ]}
               />
             </div>
@@ -342,7 +344,7 @@ export const ServiceEntryModal = ({ isOpen, onClose, onSubmit, editingEntry, cli
                 onChange={(e: any) => setFormData({ ...formData, product_variant: e.target.value })}
                 options={[
                   { value: '', label: 'SELECIONE O MATERIAL' },
-                  ...(selectedCategory.dependentSub[formData.product_subcategory] || []).map((s: string) => ({ value: s, label: s }))
+                  ...[...(selectedCategory.dependentSub[formData.product_subcategory] || [])].sort((a, b) => a.localeCompare(b, 'pt-BR')).map((s: string) => ({ value: s, label: s }))
                 ]}
               />
             </div>
@@ -356,7 +358,7 @@ export const ServiceEntryModal = ({ isOpen, onClose, onSubmit, editingEntry, cli
                 onChange={(e: any) => setFormData({ ...formData, product_variant: e.target.value })}
                 options={[
                   { value: '', label: 'SELECIONE O ACABAMENTO' },
-                  ...selectedCategory.variants.map((v: string) => ({ value: v, label: v }))
+                  ...[...selectedCategory.variants].sort((a, b) => a.localeCompare(b, 'pt-BR')).map((v: string) => ({ value: v, label: v }))
                 ]}
               />
             </div>

@@ -629,15 +629,56 @@ export default function App() {
       ]);
 
       setStats(statsData);
-      setProducts(productsData || []);
-      setOrders(ordersData || []);
-      setClients(clientsData || []);
-      setSuppliers(suppliersData || []);
-      setAssets(assetsData || []);
-      setCategories(categoriesData || []);
-      setLocations(locationsData || []);
-      setUnits(unitsData || []);
-      setProductionProducts(productionProductsData || []);
+
+      const sortedProducts = (productsData || []).slice().sort((a: any, b: any) => 
+        (a.name || '').localeCompare(b.name || '', 'pt-BR', { sensitivity: 'base' })
+      );
+      setProducts(sortedProducts);
+
+      const sortedOrders = (ordersData || []).slice().sort((a: any, b: any) => 
+        (a.title || '').localeCompare(b.title || '', 'pt-BR', { sensitivity: 'base' })
+      );
+      setOrders(sortedOrders);
+
+      const sortedClients = (clientsData || []).slice().sort((a: any, b: any) => {
+        const nameA = a.tipo_cliente === 'PF' ? (a.name || '') : (a.razao_social || '');
+        const nameB = b.tipo_cliente === 'PF' ? (b.name || '') : (b.razao_social || '');
+        return nameA.localeCompare(nameB, 'pt-BR', { sensitivity: 'base' });
+      });
+      setClients(sortedClients);
+
+      const sortedSuppliers = (suppliersData || []).slice().sort((a: any, b: any) => {
+        const nameA = a.tipo === 'PF' ? (a.name || '') : (a.razao_social || '');
+        const nameB = b.tipo === 'PF' ? (b.name || '') : (b.razao_social || '');
+        return nameA.localeCompare(nameB, 'pt-BR', { sensitivity: 'base' });
+      });
+      setSuppliers(sortedSuppliers);
+
+      const sortedAssets = (assetsData || []).slice().sort((a: any, b: any) => 
+        (a.description || '').localeCompare(b.description || '', 'pt-BR', { sensitivity: 'base' })
+      );
+      setAssets(sortedAssets);
+
+      const sortedCategories = (categoriesData || []).slice().sort((a: any, b: any) => 
+        (a.name || '').localeCompare(b.name || '', 'pt-BR', { sensitivity: 'base' })
+      );
+      setCategories(sortedCategories);
+
+      const sortedLocations = (locationsData || []).slice().sort((a: any, b: any) => 
+        (a.name || '').localeCompare(b.name || '', 'pt-BR', { sensitivity: 'base' })
+      );
+      setLocations(sortedLocations);
+
+      const sortedUnits = (unitsData || []).slice().sort((a: any, b: any) => 
+        (a.name || '').localeCompare(b.name || '', 'pt-BR', { sensitivity: 'base' })
+      );
+      setUnits(sortedUnits);
+
+      const sortedProductionProducts = (productionProductsData || []).slice().sort((a: any, b: any) => 
+        (a.name || '').localeCompare(b.name || '', 'pt-BR', { sensitivity: 'base' })
+      );
+      setProductionProducts(sortedProductionProducts);
+
       const movements = movementsData || [];
       setMovements(movements);
       
@@ -655,7 +696,13 @@ export default function App() {
 
       setAuditLogs(auditLogsData || []);
       setSystemUsers(usersData || []);
-      setServiceEntries(serviceEntriesData || []);
+
+      const sortedServiceEntries = (serviceEntriesData || []).slice().sort((a: any, b: any) => {
+        const strA = `${a.obra || ''} - ${a.client_name || ''}`;
+        const strB = `${b.obra || ''} - ${b.client_name || ''}`;
+        return strA.localeCompare(strB, 'pt-BR', { sensitivity: 'base' });
+      });
+      setServiceEntries(sortedServiceEntries);
     } catch (err) {
       console.error('Error fetching data:', err);
       setGlobalError('ERRO AO ATUALIZAR DADOS. TENTE NOVAMENTE.');

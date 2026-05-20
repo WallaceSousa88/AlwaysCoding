@@ -290,6 +290,18 @@ export const apiService = {
           photoUrl = photo;
         }
 
+        if (!photoUrl) {
+          try {
+            const docRef = doc(db, 'products', String(id));
+            const docSnap = await getDoc(docRef);
+            if (docSnap.exists()) {
+              photoUrl = docSnap.data().photo || '';
+            }
+          } catch (e) {
+            console.error("Error fetching existing product photo:", e);
+          }
+        }
+
         productData = {
           name: data.get('name'),
           category: data.get('category'),
@@ -722,6 +734,18 @@ export const apiService = {
           photoUrl = photo;
         }
 
+        const invoiceFiles = data.getAll('invoice_files');
+        let invoiceUrls: any[] = [];
+        if (invoiceFiles && invoiceFiles.length > 0) {
+          for (const file of invoiceFiles) {
+            if (file instanceof File) {
+              const url = await apiService.uploadFile(file);
+              const name = file.type === 'application/pdf' ? file.name.replace(/\.pdf$/i, '.webp') : file.name;
+              invoiceUrls.push({ name, url });
+            }
+          }
+        }
+
         assetData = {
           description: data.get('description'),
           asset_number: data.get('asset_number'),
@@ -732,7 +756,8 @@ export const apiService = {
           depreciation_type: data.get('depreciation_type'),
           depreciation_percentage: parseFloat(data.get('depreciation_percentage') as string) || 0,
           status: 'ATIVO',
-          photo: photoUrl
+          photo: photoUrl,
+          invoice_pdf: invoiceUrls.length > 0 ? JSON.stringify(invoiceUrls) : ''
         };
       }
 
@@ -758,6 +783,39 @@ export const apiService = {
           photoUrl = photo;
         }
 
+        if (!photoUrl) {
+          try {
+            const docRef = doc(db, 'assets', String(id));
+            const docSnap = await getDoc(docRef);
+            if (docSnap.exists()) {
+              photoUrl = docSnap.data().photo || '';
+            }
+          } catch (e) {
+            console.error("Error fetching existing asset photo:", e);
+          }
+        }
+
+        const invoiceFiles = data.getAll('invoice_files');
+        let invoiceUrls: any[] = [];
+        const existingInvoicesStr = data.get('existing_invoices') as string;
+        if (existingInvoicesStr) {
+          try {
+            invoiceUrls = JSON.parse(existingInvoicesStr);
+          } catch (e) {
+            console.error("Error parsing existing invoices:", e);
+          }
+        }
+
+        if (invoiceFiles && invoiceFiles.length > 0) {
+          for (const file of invoiceFiles) {
+            if (file instanceof File) {
+              const url = await apiService.uploadFile(file);
+              const name = file.type === 'application/pdf' ? file.name.replace(/\.pdf$/i, '.webp') : file.name;
+              invoiceUrls.push({ name, url });
+            }
+          }
+        }
+
         assetData = {
           description: data.get('description'),
           asset_number: data.get('asset_number'),
@@ -767,7 +825,8 @@ export const apiService = {
           purchase_value: parseFloat(data.get('purchase_value') as string) || 0,
           depreciation_type: data.get('depreciation_type'),
           depreciation_percentage: parseFloat(data.get('depreciation_percentage') as string) || 0,
-          photo: photoUrl
+          photo: photoUrl,
+          invoice_pdf: invoiceUrls.length > 0 ? JSON.stringify(invoiceUrls) : ''
         };
       }
 

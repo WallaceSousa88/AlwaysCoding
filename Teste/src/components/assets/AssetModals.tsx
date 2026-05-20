@@ -29,6 +29,7 @@ export const AssetModal = ({ isOpen, onClose, onSave, asset, categories, fieldEr
   });
   const [photo, setPhoto] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [invoices, setInvoices] = useState<(File | { name: string, url: string })[]>([]);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [facingMode, setFacingMode] = useState<'user' | 'environment'>('environment');
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -117,6 +118,16 @@ export const AssetModal = ({ isOpen, onClose, onSave, asset, categories, fieldEr
         depreciation_percentage: asset.depreciation_percentage.toString(),
       });
       setPhotoPreview(asset.photo || null);
+
+      let initialInvoices = [];
+      if (asset.invoice_pdf) {
+        try {
+          initialInvoices = JSON.parse(asset.invoice_pdf);
+        } catch (e) {
+          console.error("Error parsing asset invoices:", e);
+        }
+      }
+      setInvoices(initialInvoices);
     } else {
       setFormData({
         description: '',
@@ -130,6 +141,7 @@ export const AssetModal = ({ isOpen, onClose, onSave, asset, categories, fieldEr
       });
       setPhoto(null);
       setPhotoPreview(null);
+      setInvoices([]);
     }
   }, [asset, isOpen]);
 
@@ -146,6 +158,15 @@ export const AssetModal = ({ isOpen, onClose, onSave, asset, categories, fieldEr
       }
     });
     if (photo) data.append('photo', photo);
+
+    const rawFiles = invoices.filter(item => item instanceof File) as File[];
+    const existingInvoices = invoices.filter(item => !(item instanceof File)) as { name: string, url: string }[];
+
+    rawFiles.forEach(file => {
+      data.append('invoice_files', file);
+    });
+    data.append('existing_invoices', JSON.stringify(existingInvoices));
+
     onSave(data);
   };
 
@@ -174,6 +195,7 @@ export const AssetModal = ({ isOpen, onClose, onSave, asset, categories, fieldEr
     });
     setPhoto(null);
     setPhotoPreview(null);
+    setInvoices([]);
   };
 
   return (
@@ -367,6 +389,56 @@ export const AssetModal = ({ isOpen, onClose, onSave, asset, categories, fieldEr
             error={fieldErrors.depreciation_percentage}
             required
           />
+          <div className="md:col-span-2 space-y-1.5">
+            <label className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase">Nota Fiscal / Anexos (PDF/Anexos)</label>
+            <div className="space-y-2">
+              <div className="flex gap-2">
+                <input 
+                  type="file" 
+                  multiple
+                  accept=".pdf,image/*"
+                  className="hidden"
+                  id="asset-invoice-upload"
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                    const files = Array.from(e.target.files || []);
+                    setInvoices((prev) => [...prev, ...files]);
+                    e.target.value = ''; // Reset input to allow same file selection
+                  }}
+                />
+                <label 
+                  htmlFor="asset-invoice-upload"
+                  className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-lg text-zinc-500 hover:border-zinc-400 dark:hover:border-zinc-700 transition-colors cursor-pointer"
+                >
+                  <FileText size={18} />
+                  <span>ADICIONAR ANEXO (PDF/IMAGEM)</span>
+                </label>
+              </div>
+              
+              {invoices && invoices.length > 0 && (
+                <div className="space-y-1 max-h-32 overflow-y-auto custom-scrollbar pr-1">
+                  {invoices.map((file: any, index: number) => (
+                    <div key={index} className="flex items-center justify-between px-3 py-1.5 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-100 dark:border-zinc-800 rounded-lg text-[11px]">
+                      <div className="flex items-center gap-2 truncate whitespace-nowrap overflow-hidden">
+                        <FileText size={14} className="text-zinc-400 flex-shrink-0" />
+                        <span className="text-zinc-600 dark:text-zinc-300 truncate" title={file.name}>{file.name}</span>
+                      </div>
+                      <button 
+                        type="button"
+                        onClick={() => {
+                          const newInvoices = [...invoices];
+                          newInvoices.splice(index, 1);
+                          setInvoices(newInvoices);
+                        }}
+                        className="text-rose-500 hover:text-rose-600 p-1 flex-shrink-0"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
         <div className="flex justify-end gap-3 pt-4 border-t border-zinc-100 dark:border-zinc-800">
@@ -657,6 +729,46 @@ export const AssetDetailModal = ({
                     </div>
                   </div>
                 </div>
+
+                {/* Nota Fiscal / Anexos section */}
+                {(() => {
+                  let assetInvoices: any[] = [];
+                  if (asset.invoice_pdf) {
+                    try {
+                      assetInvoices = JSON.parse(asset.invoice_pdf);
+                    } catch (e) {
+                      console.error("Error parsing asset invoices:", e);
+                    }
+                  }
+                  if (assetInvoices.length === 0) return null;
+                  return (
+                    <div className="p-4 bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-100 dark:border-zinc-800 rounded-xl space-y-3">
+                      <div className="flex items-center gap-3 text-zinc-900 dark:text-zinc-100 mb-1">
+                        <FileText size={20} className="text-zinc-500" />
+                        <h3 className="text-xs font-bold uppercase tracking-widest">Nota Fiscal / Anexos</h3>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {assetInvoices.map((inv: any, idx: number) => (
+                          <a 
+                            key={idx} 
+                            href={inv.url} 
+                            download={inv.name}
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="flex items-center justify-between px-3 py-2 bg-white dark:bg-zinc-900/50 border border-zinc-100 dark:border-zinc-800 rounded-lg text-xs hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors group"
+                            title={inv.name}
+                          >
+                            <div className="flex items-center gap-2 truncate whitespace-nowrap overflow-hidden">
+                              <FileText size={16} className="text-zinc-400 group-hover:text-zinc-600 dark:group-hover:text-zinc-300 flex-shrink-0" />
+                              <span className="text-zinc-600 dark:text-zinc-300 truncate font-semibold" title={inv.name}>{inv.name}</span>
+                            </div>
+                            <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider select-none bg-zinc-50 dark:bg-zinc-800 px-1.5 py-0.5 rounded group-hover:bg-zinc-100 dark:group-hover:bg-zinc-700 transition-colors flex-shrink-0">ABRIR</span>
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 {asset.status === 'BAIXADO' && (
                   <div className="p-4 bg-rose-50 dark:bg-rose-500/10 border border-rose-100 dark:border-rose-500/20 rounded-xl space-y-4 animate-in fade-in slide-in-from-top-2">

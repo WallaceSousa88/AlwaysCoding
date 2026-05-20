@@ -577,6 +577,7 @@ export const StockInModal = ({
                     setIsDropdownOpen(true);
                   }}
                   onFocus={() => setIsDropdownOpen(true)}
+                  onClick={e => e.stopPropagation()}
                   className="flex-1 bg-transparent outline-none text-sm"
                 />
                 <ChevronDown size={16} className={cn("text-zinc-400 transition-transform", isDropdownOpen && "rotate-180")} />
@@ -938,6 +939,7 @@ export const StockOutModal = ({
                   setIsDropdownOpen(true);
                 }}
                 onFocus={() => setIsDropdownOpen(true)}
+                onClick={e => e.stopPropagation()}
                 className="flex-1 bg-transparent outline-none text-sm"
               />
               <ChevronDown size={16} className={cn("text-zinc-400 transition-transform", isDropdownOpen && "rotate-180")} />
