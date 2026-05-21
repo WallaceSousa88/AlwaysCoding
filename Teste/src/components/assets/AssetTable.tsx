@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Settings, ChevronUp, ChevronDown, Edit, Trash2, ArrowUpRight, ArrowDownLeft } from 'lucide-react';
 import { Asset } from '../../types';
 import { cn } from '../Common';
@@ -25,6 +25,40 @@ export const AssetTable = ({
   isAdmin = false,
   canSeeValues = true
 }: AssetTableProps) => {
+  const [visibleCount, setVisibleCount] = useState(30);
+  const sentinelRef = useRef<HTMLTableRowElement>(null);
+
+  const assetsCount = assets.length;
+
+  useEffect(() => {
+    setVisibleCount(30);
+  }, [assetsCount]);
+
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setVisibleCount(prev => {
+            if (prev >= assetsCount) return prev;
+            return Math.min(prev + 30, assetsCount);
+          });
+        }
+      },
+      { rootMargin: '150px' }
+    );
+    observer.observe(sentinel);
+    return () => {
+      observer.unobserve(sentinel);
+    };
+  }, [assetsCount]);
+
+  const visibleAssets = useMemo(() => {
+    return assets.slice(0, visibleCount);
+  }, [assets, visibleCount]);
+
   return (
     <table className="w-full text-left border-collapse">
       <thead>
@@ -97,7 +131,7 @@ export const AssetTable = ({
         </tr>
       </thead>
       <tbody>
-        {assets.map((asset) => (
+        {visibleAssets.map((asset) => (
           <tr 
             key={asset.id} 
             className="border-b border-zinc-50 dark:border-zinc-800/50 hover:bg-zinc-50/50 dark:hover:bg-zinc-800/30 transition-colors cursor-pointer group"
@@ -207,6 +241,13 @@ export const AssetTable = ({
             )}
           </tr>
         ))}
+        {assets.length > visibleCount && (
+          <tr ref={sentinelRef} className="bg-zinc-50/10 dark:bg-zinc-800/10">
+            <td colSpan={visibleColumns.length} className="px-6 py-4 text-center text-xs font-semibold text-zinc-500 dark:text-zinc-400 animate-pulse uppercase tracking-wider">
+              CARREGANDO MAIS REGISTROS...
+            </td>
+          </tr>
+        )}
       </tbody>
     </table>
   );

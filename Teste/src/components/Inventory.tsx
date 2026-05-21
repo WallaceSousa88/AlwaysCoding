@@ -579,11 +579,18 @@ export const Inventory = ({
     if (searchTerm === 'ESTOQUE BAIXO') {
       result = result.filter(p => p.min_quantity !== null && p.quantity <= p.min_quantity);
     } else {
-      result = result.filter(p => 
-        Object.values(p).some(val => 
-          val !== null && val !== undefined && val.toString().toLowerCase().includes(searchTerm.toLowerCase())
-        )
-      );
+      const queryTerm = searchTerm.trim().toLowerCase();
+      result = result.filter(p => {
+        const searchableFields = [p.name, p.category, p.unit, p.last_supplier];
+        const matchesFields = searchableFields.some(val => 
+          val !== null && val !== undefined && val.toString().toLowerCase().includes(queryTerm)
+        );
+        const matchesId = p.id && (
+          String(p.id).toLowerCase() === queryTerm || 
+          `#${p.id}`.toLowerCase() === queryTerm
+        );
+        return matchesFields || matchesId;
+      });
     }
 
     if (sortConfig) {
@@ -650,9 +657,15 @@ export const Inventory = ({
   };
 
   const filteredMovements = useMemo(() => {
+    const queryTerm = searchTerm.trim().toLowerCase();
     let result = movements.filter(m => {
-      const matchesSearch = Object.values(m).some(val => 
-        val !== null && val !== undefined && val.toString().toLowerCase().includes(searchTerm.toLowerCase())
+      const searchableFields = [m.product_name, m.supplier_name, m.doc_number, m.reason, m.destination, m.location];
+      const matchesSearch = searchableFields.some(val => 
+        val !== null && val !== undefined && val.toString().toLowerCase().includes(queryTerm)
+      );
+      const matchesId = m.id && (
+        String(m.id).toLowerCase() === queryTerm || 
+        `#${m.id}`.toLowerCase() === queryTerm
       );
       
       const movementDate = new Date(m.date);

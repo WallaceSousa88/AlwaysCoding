@@ -42,9 +42,18 @@ export const GenericList = ({
   const columnSelectorRef = useRef<HTMLDivElement>(null);
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
 
+  const [visibleCount, setVisibleCount] = useState(30);
+  const sentinelRef = useRef<HTMLTableRowElement>(null);
+
+  const columnKeysStr = columns.map(c => c.key).join(',');
+
   useEffect(() => {
     setVisibleColumns(columns.map(c => c.key).filter(k => k.toLowerCase() !== 'id'));
-  }, [columns]);
+  }, [columnKeysStr]);
+
+  useEffect(() => {
+    setVisibleCount(30);
+  }, [searchTerm, items.length]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -123,6 +132,33 @@ export const GenericList = ({
 
     return result;
   }, [items, searchTerm, columns, sortConfig]);
+
+  const itemsCount = filteredItems.length;
+
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setVisibleCount(prev => {
+            if (prev >= itemsCount) return prev;
+            return Math.min(prev + 30, itemsCount);
+          });
+        }
+      },
+      { rootMargin: '150px' }
+    );
+    observer.observe(sentinel);
+    return () => {
+      observer.unobserve(sentinel);
+    };
+  }, [itemsCount]);
+
+  const visibleItems = useMemo(() => {
+    return filteredItems.slice(0, visibleCount);
+  }, [filteredItems, visibleCount]);
 
   const activeColumns = columns.filter(col => visibleColumns.includes(col.key));
 
@@ -226,7 +262,7 @@ export const GenericList = ({
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
-            {filteredItems.map((item, idx) => (
+            {visibleItems.map((item, idx) => (
               <tr 
                 key={idx} 
                 onClick={() => onItemClick?.(item)}
@@ -242,6 +278,13 @@ export const GenericList = ({
                 ))}
               </tr>
             ))}
+            {filteredItems.length > visibleCount && (
+              <tr ref={sentinelRef} className="bg-zinc-50/10 dark:bg-zinc-800/10">
+                <td colSpan={activeColumns.length} className="px-6 py-4 text-center text-xs font-semibold text-zinc-500 dark:text-zinc-400 animate-pulse uppercase tracking-wider">
+                  CARREGANDO MAIS REGISTROS...
+                </td>
+              </tr>
+            )}
             {filteredItems.length === 0 && (
               <tr>
                 <td colSpan={activeColumns.length} className="px-6 py-8 text-center text-zinc-400 dark:text-zinc-500 text-sm italic uppercase">

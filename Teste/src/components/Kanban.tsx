@@ -72,11 +72,53 @@ export const Kanban = ({ orders, serviceEntries, onUpdateStatus, onEdit, onDelet
   };
 
   const filteredOrders = useMemo(() => {
-    return orders.filter(o => 
-      Object.values(o).some(val => 
-        val !== null && val !== undefined && val.toString().toLowerCase().includes(searchTerm.toLowerCase())
-      )
-    );
+    const queryTerm = searchTerm.trim().toLowerCase();
+    return orders.filter(o => {
+      const searchableFields = [
+        o.title,
+        o.description,
+        o.status,
+        o.client_name,
+        o.created_at
+      ];
+      
+      const matchesMainFields = searchableFields.some(val => 
+        val !== null && val !== undefined && val.toString().toLowerCase().includes(queryTerm)
+      );
+
+      if (matchesMainFields) return true;
+
+      const matchesId = o.id && (
+        String(o.id).toLowerCase() === queryTerm || 
+        `#${o.id}`.toLowerCase() === queryTerm
+      );
+
+      if (matchesId) return true;
+
+      if (o.details) {
+        try {
+          const parsed = JSON.parse(o.details);
+          const products = parsed.products || [];
+          if (products.some((p: any) => p.name?.toLowerCase().includes(queryTerm))) {
+            return true;
+          }
+          
+          const processKeys = ['impression_3d', 'cuts_folds', 'welds', 'rough_finish', 'painting', 'final_finish', 'lighting', 'accessories', 'gluing'];
+          for (const key of processKeys) {
+            const processGroup = parsed[key];
+            if (processGroup && Array.isArray(processGroup.items)) {
+              if (processGroup.items.some((i: any) => i.name?.toLowerCase().includes(queryTerm))) {
+                return true;
+              }
+            }
+          }
+        } catch (e) {
+          // ignore parsing errors
+        }
+      }
+
+      return false;
+    });
   }, [orders, searchTerm]);
 
   const filteredServiceEntries = useMemo(() => {

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Package, AlertTriangle, ChevronUp, ChevronDown } from 'lucide-react';
 import { Product } from '../../types';
 import { cn } from '../Common';
@@ -24,6 +24,40 @@ export const ProductTable = ({
   isAdmin = false,
   canSeeValues = true
 }: ProductTableProps) => {
+  const [visibleCount, setVisibleCount] = useState(30);
+  const sentinelRef = useRef<HTMLTableRowElement>(null);
+
+  const productsCount = products.length;
+
+  useEffect(() => {
+    setVisibleCount(30);
+  }, [productsCount]);
+
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setVisibleCount(prev => {
+            if (prev >= productsCount) return prev;
+            return Math.min(prev + 30, productsCount);
+          });
+        }
+      },
+      { rootMargin: '150px' }
+    );
+    observer.observe(sentinel);
+    return () => {
+      observer.unobserve(sentinel);
+    };
+  }, [productsCount]);
+
+  const visibleProducts = useMemo(() => {
+    return products.slice(0, visibleCount);
+  }, [products, visibleCount]);
+
   return (
     <table className="w-full text-left border-collapse">
       <thead>
@@ -130,7 +164,7 @@ export const ProductTable = ({
         </tr>
       </thead>
       <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
-        {products.map((p) => {
+        {visibleProducts.map((p) => {
           const isLowStock = p.min_quantity !== null && p.quantity <= p.min_quantity;
           return (
             <tr 
@@ -205,6 +239,13 @@ export const ProductTable = ({
             </tr>
           );
         })}
+        {products.length > visibleCount && (
+          <tr ref={sentinelRef} className="bg-zinc-50/10 dark:bg-zinc-800/10">
+            <td colSpan={visibleColumns.length} className="px-6 py-4 text-center text-xs font-semibold text-zinc-500 dark:text-zinc-400 animate-pulse uppercase tracking-wider">
+              CARREGANDO MAIS REGISTROS...
+            </td>
+          </tr>
+        )}
       </tbody>
     </table>
   );

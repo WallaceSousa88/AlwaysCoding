@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { ArrowDownLeft, ArrowUpRight, FileText } from 'lucide-react';
 import { Movement } from '../../types';
 import { cn } from '../Common';
@@ -20,6 +20,40 @@ export const MovementTable = ({
   getSortIcon,
   canSeeValues = true 
 }: MovementTableProps) => {
+  const [visibleCount, setVisibleCount] = useState(30);
+  const sentinelRef = useRef<HTMLTableRowElement>(null);
+
+  const movementsCount = movements.length;
+
+  useEffect(() => {
+    setVisibleCount(30);
+  }, [movementsCount]);
+
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setVisibleCount(prev => {
+            if (prev >= movementsCount) return prev;
+            return Math.min(prev + 30, movementsCount);
+          });
+        }
+      },
+      { rootMargin: '150px' }
+    );
+    observer.observe(sentinel);
+    return () => {
+      observer.unobserve(sentinel);
+    };
+  }, [movementsCount]);
+
+  const visibleMovements = useMemo(() => {
+    return movements.slice(0, visibleCount);
+  }, [movements, visibleCount]);
+
   return (
     <table className="w-full text-left border-collapse">
       <thead>
@@ -97,7 +131,7 @@ export const MovementTable = ({
         </tr>
       </thead>
       <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
-        {movements.map((m) => {
+        {visibleMovements.map((m) => {
           let invoices = [];
           try {
             if (m.invoice_pdf) {
@@ -188,6 +222,13 @@ export const MovementTable = ({
             </tr>
           );
         })}
+        {movements.length > visibleCount && (
+          <tr ref={sentinelRef} className="bg-zinc-50/10 dark:bg-zinc-800/10">
+            <td colSpan={visibleColumns.length} className="px-6 py-4 text-center text-xs font-semibold text-zinc-500 dark:text-zinc-400 animate-pulse uppercase tracking-wider">
+              CARREGANDO MAIS REGISTROS...
+            </td>
+          </tr>
+        )}
         {movements.length === 0 && (
           <tr>
             <td colSpan={visibleColumns.length} className="px-6 py-8 text-center text-zinc-400 dark:text-zinc-500 text-sm italic uppercase font-bold">

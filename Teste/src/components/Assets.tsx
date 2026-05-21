@@ -89,11 +89,27 @@ export const Assets = ({
   ];
 
   const filteredAssets = useMemo(() => {
-    let result = assets.filter(a => 
-      Object.values(a).some(val => 
-        val !== null && val !== undefined && val.toString().toLowerCase().includes(searchTerm.toLowerCase())
-      )
-    );
+    const queryTerm = searchTerm.trim().toLowerCase();
+    let result = assets.filter(a => {
+      const searchableFields = [
+        a.description,
+        a.asset_number,
+        a.location_or_responsible,
+        a.category,
+        a.purchase_date,
+        a.status,
+        a.disposal_type,
+        a.disposal_date
+      ];
+      const matchesSearch = searchableFields.some(val => 
+        val !== null && val !== undefined && val.toString().toLowerCase().includes(queryTerm)
+      );
+      const matchesId = a.id && (
+        String(a.id).toLowerCase() === queryTerm || 
+        `#${a.id}`.toLowerCase() === queryTerm
+      );
+      return matchesSearch || matchesId;
+    });
 
     if (sortConfig) {
       result.sort((a, b) => {
